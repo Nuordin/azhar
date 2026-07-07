@@ -1,4 +1,5 @@
-import { eq, sql } from 'drizzle-orm';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { eq, sql, inArray } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { projects, projectTranslations, media } from '$lib/server/db/schema';
 import { fail } from '@sveltejs/kit';
@@ -94,8 +95,6 @@ export const actions = {
 				.returning({ id: projects.id });
 
 			const projectId = newProject.id;
-
-			// 2. إدخال الترجمة وربطها بـ projectId
 			const title = formData.get('title') as string;
 			const developerName = formData.get('developerName') as string;
 			const locationName = formData.get('locationName') as string;
@@ -117,7 +116,6 @@ export const actions = {
 				details
 			});
 
-			// 3. معالجة وحفظ الملفات
 			const files = formData.getAll('mediaFiles') as File[];
 			const thumbnailIndex = Number(formData.get('thumbnailIndex') || 0);
 			const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
@@ -189,6 +187,149 @@ export const actions = {
 		} catch (error) {
 			console.error('حدث خطأ أثناء الحذف:', error);
 			return fail(500, { message: 'حدث خطأ داخلي أثناء حذف المشروع' });
+		}
+	},
+	updateProject: async ({ request }) => {
+		try {
+			const formData = await request.formData();
+			const projectId = Number(formData.get('projectId'));
+
+			if (!projectId) return fail(400, { message: 'المعرف غير صالح' });
+
+			const parentIdRaw = formData.get('parentId') as string;
+			const parentId = parentIdRaw && parentIdRaw !== 'none' ? Number(parentIdRaw) : null;
+			const ownershipType = formData.get('ownershipType') as any;
+			const constructionStatus = formData.get('constructionStatus') as any;
+			const completionPercentage = (formData.get('completionPercentage') as any) || '0';
+			const startingPrice = formData.get('startingPrice')
+				? Number(formData.get('startingPrice'))
+				: null;
+			const deliveryDateStr = formData.get('deliveryDate') as string;
+			const deliveryDate = deliveryDateStr ? new Date(deliveryDateStr) : null;
+			const isPublished = formData.get('isPublished') === 'true';
+
+			await db
+				.update(projects)
+				.set({
+					parentId: parentId,
+					ownershipType: ownershipType,
+					constructionStatus: constructionStatus,
+					completionPercentage: completionPercentage,
+					startingPrice: startingPrice,
+					deliveryDate: deliveryDate,
+					isPublished: isPublished,
+					updatedAt: new Date()
+				})
+				.where(eq(projects.id, projectId));
+
+			const title = formData.get('title') as string;
+			const developerName = formData.get('developerName') as string;
+			const locationName = formData.get('locationName') as string;
+			const description = formData.get('description') as string;
+			const amenities = JSON.parse((formData.get('amenities') as string) || '[]');
+			const paymentPlans = JSON.parse((formData.get('paymentPlans') as string) || '[]');
+			const details = JSON.parse((formData.get('details') as string) || '[]');
+
+			await db
+				.update(projectTranslations)
+				.set({
+					title,
+					developerName,
+					locationName,
+					description,
+					amenities,
+					paymentPlans,
+					details
+				})
+				.where(eq(projectTranslations.projectId, projectId)); // افتراض التعديل على اللغة العربية فقط حالياً
+
+			const deletedMediaIds = JSON.parse((formData.get('deletedMediaIds') as string) || '[]');
+			if (deletedMediaIds.length > 0) {
+				const mediaToDelete = await db
+					.select({ url: media.url })
+					.from(media)
+					.where(inArray(media.id, deletedMediaIds));
+				const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
+
+				for (const file of mediaToDelete) {
+					try {
+						const fileName = file.url.replace('/uploads/', '');
+						await fs.unlink(path.join(uploadDir, fileName));
+					} catch (e) {
+						console.log(e);
+						console.error(`لم يتم العثور على الملف لحذفه: ${file.url}`);
+					}
+				}
+				await db.delete(media).where(inArray(media.id, deletedMediaIds));
+			}
+
+			await db.update(media).set({ isMain: false }).where(eq(media.projectId, projectId));
+
+			const mainExistingMediaId = formData.get('mainExistingMediaId');
+			if (mainExistingMediaId && mainExistingMediaId !== 'null') {
+				await db
+					.update(media)
+					.set({ isMain: true })
+					.where(eq(media.id, Number(mainExistingMediaId)));
+			}
+
+			const files = formData.getAll('mediaFiles') as File[];
+			const thumbnailIndex = Number(formData.get('thumbnailIndex'));
+			const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
+			await fs.mkdir(uploadDir, { recursive: true });
+
+			for (let i = 0; i < files.length; i++) {
+				const file = files[i];
+				if (file.size === 0) continue;
+
+				const fileExt = file.name.split('.').pop();
+				const fileName = `${crypto.randomUUID()}.${fileExt}`;
+				const filePath = path.join(uploadDir, fileName);
+
+				const arrayBuffer = await file.arrayBuffer();
+				await fs.writeFile(filePath, Buffer.from(arrayBuffer));
+
+				const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+				const isMain =
+					i === thumbnailIndex && (!mainExistingMediaId || mainExistingMediaId === 'null');
+
+				const maxOrderResult = await db
+					.select({ maxOrder: sql<number>`MAX(${media.sortOrder})` })
+					.from(media)
+					.where(eq(media.projectId, projectId));
+				const nextOrder = (maxOrderResult[0]?.maxOrder || 0) + i + 1;
+
+				await db.insert(media).values({
+					projectId: projectId,
+					url: `/uploads/${fileName}`,
+					type: fileType,
+					isMain: isMain,
+					sortOrder: nextOrder
+				});
+			}
+
+			return { type: 'success', message: 'تم تحديث المشروع بنجاح' };
+		} catch (error) {
+			console.error('Error updating project:', error);
+			return fail(500, { message: 'حدث خطأ داخلي أثناء تحديث المشروع' });
+		}
+	},
+	togglePublish: async ({ request }) => {
+		const formData = await request.formData();
+		const id = Number(formData.get('id'));
+		const isPublished = formData.get('isPublished') === 'true';
+
+		if (!id || isNaN(id)) {
+			return fail(400, { message: 'معرف المشروع غير صحيح' });
+		}
+
+		try {
+			await db.update(projects).set({ isPublished: isPublished }).where(eq(projects.id, id));
+
+			return { success: true };
+		} catch (error) {
+			console.error('خطأ أثناء تحديث حالة النشر:', error);
+			return fail(500, { message: 'فشل تحديث حالة النشر في قاعدة البيانات' });
 		}
 	}
 };

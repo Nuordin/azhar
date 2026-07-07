@@ -94,15 +94,55 @@
 						</Table.Cell>
 
 						<Table.Cell class="text-center">
-							<div class="flex flex-col items-center gap-1.5">
-								<span class="text-[10px] text-muted-foreground">منشور</span>
-								<Switch bind:checked={project.isPublished} />
-							</div>
+							<form
+								action="?/togglePublish"
+								method="POST"
+								use:enhance={() => {
+									return async ({ update }) => {
+										await update({ invalidateAll: true });
+									};
+								}}
+								id="publish-form-{project.id}">
+								<input type="hidden" name="id" value={project.id} />
+								<input type="hidden" name="isPublished" value={!project.isPublished} />
+
+								<Switch
+									checked={project.isPublished}
+									onclick={() => {
+										const form = document.getElementById(
+											`publish-form-${project.id}`
+										) as HTMLFormElement;
+										if (form) {
+											form.requestSubmit();
+										}
+									}} />
+							</form>
 						</Table.Cell>
 
 						<Table.Cell class="text-left">
 							<div class="flex justify-end gap-2">
-								<Button variant="ghost" size="icon" title="تعديل">
+								<Button
+									variant="ghost"
+									size="icon"
+									title="تعديل"
+									onclick={async (e) => {
+										const btn = e.currentTarget as HTMLButtonElement;
+										btn.disabled = true; // لمنع الضغط المتكرر
+										try {
+											const res = await fetch(`/api/projects/${project.id}`);
+											if (res.ok) {
+												const fullData = await res.json();
+												projectForm.populate(fullData);
+												projectForm.openDialog();
+											} else {
+												alert('حدث خطأ أثناء جلب بيانات المشروع');
+											}
+										} catch (err) {
+											console.error(err);
+										} finally {
+											btn.disabled = false;
+										}
+									}}>
 									<SquarePen class="h-4 w-4 text-muted-foreground" />
 								</Button>
 
@@ -110,12 +150,7 @@
 									method="POST"
 									action="?/deleteProject"
 									use:enhance={() => {
-										// يمكننا إضافة حالة تحميل هنا إذا أردنا (Loading State)
-										return async ({ result, update }) => {
-											if (result.type === 'success') {
-												// سيقوم SvelteKit بتحديث بيانات الصفحة تلقائياً (إزالة الصف من الجدول)
-												// يمكنك هنا استدعاء مكتبة Toast لإظهار رسالة "تم الحذف بنجاح"
-											}
+										return async ({ update }) => {
 											update(); // تحديث واجهة المستخدم
 										};
 									}}>
@@ -128,7 +163,6 @@
 										title="حذف"
 										class="hover:text-destructive hover:bg-destructive/10"
 										onclick={(e) => {
-											// نافذة تأكيد بسيطة قبل إرسال النموذج
 											if (
 												!confirm(
 													'هل أنت متأكد من حذف هذا المشروع نهائياً؟ سيتم حذف جميع الصور والبيانات المرتبطة به ولن تتمكن من التراجع.'

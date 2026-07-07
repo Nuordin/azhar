@@ -112,8 +112,12 @@
 	async function submitForm() {
 		isSubmitting = true;
 		const formData = new FormData();
-		if (projectForm.parentId !== 'none') {
-			formData.append('parentId', projectForm.parentId);
+		if (projectForm.projectId) {
+			formData.append('projectId', String(projectForm.projectId));
+			formData.append('deletedMediaIds', JSON.stringify(projectForm.deletedMediaIds));
+			if (projectForm.mainExistingMediaId) {
+				formData.append('mainExistingMediaId', String(projectForm.mainExistingMediaId));
+			}
 		}
 		formData.append('title', projectForm.title);
 		formData.append('developerName', projectForm.developerName);
@@ -143,8 +147,9 @@
 		});
 
 		try {
+			const actionUrl = projectForm.projectId ? '?/updateProject' : '?/createProject';
 			// إرسال البيانات إلى +page.server.ts
-			const response = await fetch('?/createProject', {
+			const response = await fetch(actionUrl, {
 				method: 'POST',
 				body: formData
 			});
@@ -170,7 +175,8 @@
 <Dialog.Root bind:open={projectForm.isOpen}>
 	<Dialog.Content class="sm:max-w-150 dark" interactOutsideBehavior="close">
 		<Dialog.Header>
-			<Dialog.Title class="text-right">إضافة مشروع جديد</Dialog.Title>
+			<Dialog.Title class="text-right"
+				>{projectForm.projectId ? 'تعديل المشروع' : 'إضافة مشروع جديد'}</Dialog.Title>
 			<Dialog.Description class="text-right">
 				الخطوة {projectForm.currentStep} من 4
 			</Dialog.Description>
@@ -441,6 +447,63 @@
 				</div>
 			{:else if projectForm.currentStep === 4}
 				<div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+					{#if projectForm.existingMedia.length > 0}
+						<div class="space-y-2">
+							<Label class="text-right font-bold">الصور الحالية</Label>
+							<div class="grid grid-cols-3 gap-4">
+								{#each projectForm.existingMedia as file (file.id)}
+									<div
+										class="relative group rounded-md border p-2 flex flex-col gap-2 transition-all {projectForm.mainExistingMediaId ===
+											file.id && projectForm.thumbnailIndex === -1
+											? 'border-primary ring-1 ring-primary bg-primary/5'
+											: 'hover:border-muted-foreground/50'}">
+										{#if file.type === 'image'}
+											<img
+												src={file.url}
+												alt="preview"
+												class="w-full h-24 object-cover rounded-sm border" />
+										{:else}
+											<div
+												class="w-full h-24 bg-muted border flex items-center justify-center rounded-sm">
+												<Video class="w-8 h-8 text-muted-foreground/50" />
+											</div>
+										{/if}
+
+										<div class="flex items-center justify-between mt-auto pt-1">
+											<button
+												class="text-xs font-medium transition-colors {projectForm.mainExistingMediaId ===
+													file.id && projectForm.thumbnailIndex === -1
+													? 'text-primary'
+													: 'text-muted-foreground hover:text-foreground'}"
+												onclick={() => {
+													projectForm.mainExistingMediaId = file.id;
+													projectForm.thumbnailIndex = -1; // إلغاء تحديد الصورة الجديدة كرئيسية
+												}}>
+												{projectForm.mainExistingMediaId === file.id &&
+												projectForm.thumbnailIndex === -1
+													? '★ الرئيسية'
+													: 'تعيين كرئيسية'}
+											</button>
+
+											<Button
+												variant="ghost"
+												size="icon"
+												class="h-6 w-6 text-destructive hover:bg-destructive/10"
+												onclick={() => {
+													projectForm.deletedMediaIds.push(file.id);
+													projectForm.existingMedia = projectForm.existingMedia.filter(
+														(m) => m.id !== file.id
+													);
+												}}>
+												<Trash2 class="w-3.5 h-3.5" />
+											</Button>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+						<Separator />
+					{/if}
 					<div
 						class="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-10 gap-4 bg-muted/10 transition-colors hover:bg-muted/30">
 						<div
@@ -462,46 +525,53 @@
 								onchange={handleFileSelect} />
 						</Button>
 					</div>
-
 					{#if projectForm.mediaFiles.length > 0}
-						<div class="grid grid-cols-3 gap-4 mt-6">
-							{#each projectForm.mediaFiles as file, i (i)}
-								<div
-									class="relative group rounded-md border p-2 flex flex-col gap-2 transition-all {projectForm.thumbnailIndex ===
-									i
-										? 'border-primary ring-1 ring-primary bg-primary/5'
-										: 'hover:border-muted-foreground/50'}">
-									{#if file.type.startsWith('image/')}
-										<img
-											src={URL.createObjectURL(file)}
-											alt="preview"
-											class="w-full h-24 object-cover rounded-sm border" />
-									{:else}
-										<div
-											class="w-full h-24 bg-muted border flex items-center justify-center rounded-sm">
-											<Video class="w-8 h-8 text-muted-foreground/50" />
+						<div class="space-y-2 mt-6">
+							<Label class="text-right font-bold">الصور الجديدة المرفوعة</Label>
+							<div class="grid grid-cols-3 gap-4">
+								{#each projectForm.mediaFiles as file, i (i)}
+									<div
+										class="relative group rounded-md border p-2 flex flex-col gap-2 transition-all {projectForm.thumbnailIndex ===
+										i
+											? 'border-primary ring-1 ring-primary bg-primary/5'
+											: 'hover:border-muted-foreground/50'}">
+										{#if file.type.startsWith('image/')}
+											<img
+												src={URL.createObjectURL(file)}
+												alt="preview"
+												class="w-full h-24 object-cover rounded-sm border" />
+										{:else}
+											<div
+												class="w-full h-24 bg-muted border flex items-center justify-center rounded-sm">
+												<Video class="w-8 h-8 text-muted-foreground/50" />
+											</div>
+										{/if}
+
+										<div class="flex items-center justify-between mt-auto pt-1">
+											<button
+												type="button"
+												class="text-xs font-medium transition-colors {projectForm.thumbnailIndex ===
+												i
+													? 'text-primary'
+													: 'text-muted-foreground hover:text-foreground'}"
+												onclick={() => {
+													projectForm.thumbnailIndex = i;
+													projectForm.mainExistingMediaId = null; // إلغاء تحديد الصورة القديمة كرئيسية
+												}}>
+												{projectForm.thumbnailIndex === i ? '★ الرئيسية' : 'تعيين كرئيسية'}
+											</button>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												class="h-6 w-6 text-destructive hover:bg-destructive/10"
+												onclick={() => removeFile(i)}>
+												<Trash2 class="w-3.5 h-3.5" />
+											</Button>
 										</div>
-									{/if}
-
-									<div class="flex items-center justify-between mt-auto pt-1">
-										<button
-											class="text-xs font-medium transition-colors {projectForm.thumbnailIndex === i
-												? 'text-primary'
-												: 'text-muted-foreground hover:text-foreground'}"
-											onclick={() => (projectForm.thumbnailIndex = i)}>
-											{projectForm.thumbnailIndex === i ? '★ الصورة الرئيسية' : 'تعيين كرئيسية'}
-										</button>
-
-										<Button
-											variant="ghost"
-											size="icon"
-											class="h-6 w-6 text-destructive hover:bg-destructive/10"
-											onclick={() => removeFile(i)}>
-											<Trash2 class="w-3.5 h-3.5" />
-										</Button>
 									</div>
-								</div>
-							{/each}
+								{/each}
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -511,10 +581,13 @@
 		<Dialog.Footer class="flex justify-between items-center w-full gap-2 mt-4" dir="rtl">
 			<div class="flex gap-2">
 				{#if projectForm.currentStep > 1}
-					<Button variant="outline" onclick={() => projectForm.prevStep()}>السابق</Button>
+					<Button type="button" variant="outline" onclick={() => projectForm.prevStep()}
+						>السابق</Button>
 				{/if}
 
 				<Button
+					type="button"
+					onsubmit={(e) => e.preventDefault()}
 					onclick={() => (projectForm.currentStep === 4 ? submitForm() : projectForm.nextStep())}
 					disabled={isSubmitting}>
 					{isSubmitting
@@ -524,7 +597,7 @@
 							: 'التالي'}
 				</Button>
 			</div>
-			<Button variant="ghost" onclick={() => projectForm.closeDialog()}>إلغاء</Button>
+			<Button type="button" variant="ghost" onclick={() => projectForm.closeDialog()}>إلغاء</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
