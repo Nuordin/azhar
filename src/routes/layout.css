@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@font-face {
+	font-family: inter;
+	font-style: normal;
+	font-display: swap;
+	src: url('/fonts/inter.ttf') format('truetype');
+}
+@font-face {
+	font-family: aljazeera;
+	font-style: normal;
+	font-display: swap;
+	src: url('/fonts/Al-Jazeera-Arabic Light.ttf') format('truetype');
+}
+@font-face {
+	font-family: aljazeera-thik;
+	font-style: normal;
+	font-display: swap;
+	src: url('/fonts/Aljazeera Regular.ttf') format('truetype');
+}
+@theme {
+	--font-aljazeera: 'Aljazeera', sans-serif;
+	--font-aljazeera-thik: 'Aljazeera-thik', sans-serif;
+	--font-inter: 'inter', sans-serif;
+
+	--color-primary-100: #fddad3;
+	--color-primary-200: #fba48e;
+	--color-primary-300: #f26a26;
+	--color-primary-400: #b84f1a;
+	--color-primary-500: #81350f;
+	--color-primary-600: #4f1d06;
+	--color-primary-700: #230901;
+	--color-primary: #f26a26;
+
+	--color-secondary-100: #e6f2fe;
+	--color-secondary-200: #9dd2fd;
+	--color-secondary-300: #26aff2;
+	--color-secondary-400: #1b88bd;
+	--color-secondary-500: #11628a;
+	--color-secondary-600: #073f5a;
+	--color-secondary-700: #021f2f;
+	--color-secondary: #073f5a;
+}
+
+html {
+	background-color: var(--color-secondary-100);
+	color: var(--color-secondary-700);
+	font-family: aljazeera, inter, sans-serif;
+	scroll-behavior: smooth;
+}
