@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '../admin.css';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -33,7 +34,7 @@
 	}
 </script>
 
-<div class="flex h-screen w-full items-center justify-center px-4">
+<div class="flex h-screen w-full items-center justify-center px-4 dark bg-black">
 	<Card.Root class="mx-auto w-full max-w-sm">
 		<Card.Header>
 			<Card.Title class="text-2xl">تسجيل الدخول</Card.Title>
