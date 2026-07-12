@@ -10,7 +10,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { enhance } from '$app/forms';
 
-	import { SquarePen, Trash2 } from '@lucide/svelte';
+	import { Plus, SquarePen, Trash2 } from '@lucide/svelte';
 	import { projectForm } from './state.svelte.js';
 	import ProjectDialog from './ProjectDialog.svelte';
 	let { data } = $props();
@@ -20,32 +20,35 @@
 		return new Intl.NumberFormat('ar-OM', { style: 'currency', currency: 'OMR' }).format(amount);
 	};
 
-	const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> =
-		{
-			ready: { label: 'جاهز', variant: 'default' },
-			under_construction: { label: 'قيد الإنشاء', variant: 'secondary' },
-			off_plan: { label: 'مخطط', variant: 'outline' }
-		};
+	const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
+		ready: { label: 'جاهز', variant: 'default' },
+		under_construction: { label: 'قيد الإنشاء', variant: 'secondary' },
+		off_plan: { label: 'مخطط', variant: 'outline' }
+	};
 </script>
 
 <header class="flex h-16 shrink-0 items-center gap-2">
-	<div class="flex items-center gap-2 px-4">
+	<div class="flex items-center gap-2 px-16 w-full">
 		<Sidebar.Trigger class="-ms-1" />
 		<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
 		<Breadcrumb.Root>
 			<Breadcrumb.List>
 				<Breadcrumb.Item class="hidden md:block">
-					<Breadcrumb.Link href="">عرض المشاريع</Breadcrumb.Link>
+					<Breadcrumb.Link href="">إدارة الموقع</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator class="hidden md:block" />
+				<Breadcrumb.Item>
+					<Breadcrumb.Page>إدارة المشاريع</Breadcrumb.Page>
 				</Breadcrumb.Item>
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
-		<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
-		<Button onclick={() => projectForm.openDialog()}>إضافة مشروع جديد</Button>
+		<!-- <Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" /> -->
+		<Button variant="outline" onclick={() => projectForm.openDialog()}>إضافة مشروع جديد<Plus /></Button>
 	</div>
 </header>
 <ProjectDialog parentProjects={data.parentProjects} />
-<div class="flex flex-1 flex-col gap-4 p-4 pt-0" dir="rtl">
-	<div class="rounded-md border bg-background">
+<div class="flex flex-1 flex-col gap-4 p-4 md:px-16" dir="rtl">
+	<div class="rounded-2xl border bg-background">
 		<Table.Root>
 			<Table.Header>
 				<Table.Row>
@@ -109,9 +112,7 @@
 								<Switch
 									checked={project.isPublished}
 									onclick={() => {
-										const form = document.getElementById(
-											`publish-form-${project.id}`
-										) as HTMLFormElement;
+										const form = document.getElementById(`publish-form-${project.id}`) as HTMLFormElement;
 										if (form) {
 											form.requestSubmit();
 										}
@@ -121,7 +122,7 @@
 
 						<Table.Cell class="text-left">
 							<div class="flex justify-end gap-2">
-								<Button
+								<!-- <Button
 									variant="ghost"
 									size="icon"
 									title="تعديل"
@@ -144,7 +145,7 @@
 										}
 									}}>
 									<SquarePen class="h-4 w-4 text-muted-foreground" />
-								</Button>
+								</Button> -->
 
 								<form
 									method="POST"
@@ -182,7 +183,10 @@
 				{#if data.projects.length === 0}
 					<Table.Row>
 						<Table.Cell colspan={7} class="text-center py-10 text-muted-foreground">
-							لا توجد مشاريع مضافة حتى الآن.
+							<div class="flex flex-col items-center gap-4">
+								<span class="mb-0"> لا توجد مشاريع مضافة حتى الآن.</span>
+								<Button variant="outline" onclick={() => projectForm.openDialog()}>إضافة مشروع جديد<Plus /></Button>
+							</div>
 						</Table.Cell>
 					</Table.Row>
 				{/if}

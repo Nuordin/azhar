@@ -1,42 +1,34 @@
-# sv
+# Azhar Web
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+THE TASKS THAT LEFT
 
-## Creating a project
+- [x] Is it for rent or seal
+- [x] Add rented type
 
-If you're seeing this, you've probably already done this step. Congrats!
+# ADMIN SPECIFIC TASKS
 
-```sh
-# create a new project
-npx sv create my-app
-```
+- [x] IMPLEMENTING THE DIALOG
+  - [x] FIRST STEP (BASIC DATA)
+  - [x] SECOND STEP (PRICEING & LOCATION)
+  - [x] THIRD STEP (AMENITIES & PAYMENT PLANS & DETAILS)
+  - [x] FOURTH STEP (UPLOADING IMAGES & VIDEOS)
+- [x] LINKING THE DIALOG TO THE `propertiesForm` CLASS
+- [x] CREATING VIRTUAL FORM ELEMENT & SUBMITTING THE FORM
+- [ ] GETTING THE FORM DATA IN `+page.server.js`
+- [ ] VALIDATING THE FORM DATA
+- [ ] UPLOADING THE MEDIA FILES
+- [ ] SAVING THE FORM DATA IN THE DATABASE
 
-To recreate this project with the same configuration:
+# USER SPECIFIC TASKS
 
-```sh
-# recreate this project
-pnpm dlx sv@0.16.1 create --template minimal --types ts --add prettier eslint tailwindcss="plugins:typography,forms" sveltekit-adapter="adapter:node" drizzle="database:sqlite+sqlite:better-sqlite3" better-auth="demo:password" experimental="versions:kit+features:async,remoteFunctions" --install pnpm azhar-web
-```
+- [ ] LOADING THE PROJECTS DATA IN `+page.server.js` ON PROJECTS ROUTE
+- [ ] DISPLAYING THE PROJECTS DATA IN `+page.svelte`
+- [ ] CREATING THE UNIT/PROPERTY `+page.svelte` ON PROPERTIES ROUTE
+- [ ] GETTING THE UNIT/PROPERTY DATA IN `+page.server.js` ON PROPERTY ROUTE
+- [ ] DISPLAYING THE UNIT/PROPERTY DATA IN `+page.svelte` ON PROPERTY ROUTE
 
-## Developing
+- [ ] CREATING THE OUR_PROJECTS PAGE ON OUR PROJECTS ROUTE
+- [ ] DISPLAYING THE OUR_PROJECTS DATA IN `+page.svelte`
+- [ ] CREATING BASIC FILTERS (I.E. LOCATION, PRICE, BEDROOMS, BATHROOMS, AREA)
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- [ ] ADAPTING THE USER INTERFACE TO TABLETS AND DESKTOPS

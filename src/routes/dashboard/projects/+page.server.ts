@@ -42,9 +42,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		.where(eq(projectTranslations.locale, 'ar'))
 		.limit(limit)
 		.offset(offset)
-		.orderBy(projects.createdAt); // يمكنك إضافة ترتيب هنا إذا رغبت
+		.orderBy(projects.updatedAt);
 
-	// 4. إرسال البيانات إلى واجهة المستخدم (+page.svelte)
 	return {
 		projects: projectsList,
 		parentProjects: parentProjectsList,
@@ -64,15 +63,10 @@ export const actions = {
 			const parentIdRaw = formData.get('parentId') as string;
 			const parentId = parentIdRaw && parentIdRaw !== 'none' ? Number(parentIdRaw) : null;
 
-			const ownershipType = formData.get('ownershipType') as
-				'omani_only' | 'gcc_only' | 'all_nationalities';
-			const constructionStatus = formData.get('constructionStatus') as
-				'off_plan' | 'under_construction' | 'ready';
-			const completionPercentage =
-				(formData.get('completionPercentage') as '25' | '50' | '75' | '100') || '0';
-			const startingPrice = formData.get('startingPrice')
-				? Number(formData.get('startingPrice'))
-				: null;
+			const ownershipType = formData.get('ownershipType') as 'omani_only' | 'gcc_only' | 'all_nationalities';
+			const constructionStatus = formData.get('constructionStatus') as 'off_plan' | 'under_construction' | 'ready';
+			const completionPercentage = (formData.get('completionPercentage') as '25' | '50' | '75' | '100') || '0';
+			const startingPrice = formData.get('startingPrice') ? Number(formData.get('startingPrice')) : null;
 
 			const deliveryDateStr = formData.get('deliveryDate') as string;
 			const deliveryDate = deliveryDateStr ? new Date(deliveryDateStr) : null;
@@ -105,7 +99,7 @@ export const actions = {
 			const details = JSON.parse((formData.get('details') as string) || '[]');
 
 			await db.insert(projectTranslations).values({
-				projectId: projectId, // ربط صحيح
+				projectId: projectId,
 				locale: 'ar',
 				title,
 				developerName,
@@ -146,7 +140,7 @@ export const actions = {
 				});
 			}
 
-			return { success: true };
+			return { success: true, message: 'Project saved successfully' };
 		} catch (error) {
 			console.error('Error saving project:', error);
 			return fail(500, { message: 'Failed to save project' });
@@ -161,10 +155,7 @@ export const actions = {
 				return fail(400, { message: 'معرف المشروع غير صالح' });
 			}
 
-			const projectMedia = await db
-				.select({ url: media.url })
-				.from(media)
-				.where(eq(media.projectId, projectId));
+			const projectMedia = await db.select({ url: media.url }).from(media).where(eq(media.projectId, projectId));
 
 			const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
 
@@ -201,9 +192,7 @@ export const actions = {
 			const ownershipType = formData.get('ownershipType') as any;
 			const constructionStatus = formData.get('constructionStatus') as any;
 			const completionPercentage = (formData.get('completionPercentage') as any) || '0';
-			const startingPrice = formData.get('startingPrice')
-				? Number(formData.get('startingPrice'))
-				: null;
+			const startingPrice = formData.get('startingPrice') ? Number(formData.get('startingPrice')) : null;
 			const deliveryDateStr = formData.get('deliveryDate') as string;
 			const deliveryDate = deliveryDateStr ? new Date(deliveryDateStr) : null;
 			const isPublished = formData.get('isPublished') === 'true';
@@ -245,10 +234,7 @@ export const actions = {
 
 			const deletedMediaIds = JSON.parse((formData.get('deletedMediaIds') as string) || '[]');
 			if (deletedMediaIds.length > 0) {
-				const mediaToDelete = await db
-					.select({ url: media.url })
-					.from(media)
-					.where(inArray(media.id, deletedMediaIds));
+				const mediaToDelete = await db.select({ url: media.url }).from(media).where(inArray(media.id, deletedMediaIds));
 				const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
 
 				for (const file of mediaToDelete) {
@@ -290,8 +276,7 @@ export const actions = {
 				await fs.writeFile(filePath, Buffer.from(arrayBuffer));
 
 				const fileType = file.type.startsWith('image/') ? 'image' : 'video';
-				const isMain =
-					i === thumbnailIndex && (!mainExistingMediaId || mainExistingMediaId === 'null');
+				const isMain = i === thumbnailIndex && (!mainExistingMediaId || mainExistingMediaId === 'null');
 
 				const maxOrderResult = await db
 					.select({ maxOrder: sql<number>`MAX(${media.sortOrder})` })

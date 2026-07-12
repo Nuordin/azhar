@@ -1,7 +1,9 @@
 <script lang="ts" module>
-	import Settings2Icon from '@lucide/svelte/icons/settings-2';
-	import SquareTerminalIcon from '@lucide/svelte/icons/square-terminal';
+	// import { authClient } from '$lib/client/auth.js';
+	import logo from '$lib/assets/OneWayLogo.svg';
 
+	// const session = authClient.useSession();
+	// const email = authClient. || 'azhar@onewayestate.com';
 	const data = {
 		user: {
 			name: 'Azhar',
@@ -10,15 +12,15 @@
 		},
 		navMain: [
 			{
-				title: 'عرض المشاريع',
-				url: '#123',
-				icon: SquareTerminalIcon,
-				isActive: true
+				title: 'إدارة المشاريع',
+				url: 'projects',
+				isActive: true,
+				icon: null
 			},
 			{
-				title: 'Settings',
-				url: '#',
-				icon: Settings2Icon
+				title: 'إدارة الوحدات',
+				url: 'properties',
+				icon: null
 			}
 		]
 	};
@@ -29,12 +31,11 @@
 	import NavUser from './nav-user.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
-	import logo from '$lib/assets/OneWayLogo.svg';
 
 	let { ref = $bindable(null), ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
 </script>
 
-<Sidebar.Root bind:ref variant="inset" {...restProps}>
+<Sidebar.Root bind:ref variant="inset" {...restProps} class="dark">
 	<Sidebar.Header>
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>

@@ -1,12 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
-import {
-	sqliteTable,
-	text,
-	integer,
-	index,
-	type AnySQLiteColumn,
-	real
-} from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index, type AnySQLiteColumn, real } from 'drizzle-orm/sqlite-core';
 
 export const user = sqliteTable('user', {
 	id: text('id').primaryKey(),
@@ -125,15 +118,9 @@ export const projects = sqliteTable(
 		parentId: integer('parent_id').references((): AnySQLiteColumn => projects.id, {
 			onDelete: 'cascade'
 		}),
-		ownershipType: text('ownership_type', {
-			enum: ['omani_only', 'gcc_only', 'all_nationalities']
-		}).notNull(),
-		constructionStatus: text('construction_status', {
-			enum: ['off_plan', 'under_construction', 'ready']
-		}).notNull(),
-		completionPercentage: text('completion_percentage', {
-			enum: ['0', '25', '50', '75', '100']
-		}).default('0'),
+		ownershipType: text('ownership_type', { enum: ['omani_only', 'gcc_only', 'all_nationalities'] }).notNull(),
+		constructionStatus: text('construction_status', { enum: ['off_plan', 'under_construction', 'ready'] }).notNull(),
+		completionPercentage: text('completion_percentage', { enum: ['0', '25', '50', '75', '100'] }).default('0'),
 		totalArea: real('total_area'),
 		startingPrice: integer('starting_price'),
 		deliveryDate: integer('delivery_date', { mode: 'timestamp_ms' }),
@@ -179,9 +166,7 @@ export const units = sqliteTable(
 	'units',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
-		projectId: integer('project_id')
-			.notNull()
-			.references(() => projects.id, { onDelete: 'cascade' }),
+		projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
 		type: text('type', {
 			enum: [
 				'apartment',
@@ -210,11 +195,15 @@ export const units = sqliteTable(
 		status: text('status', { enum: ['available', 'reserved', 'sold'] })
 			.notNull()
 			.default('available'),
+		category: text('category', { enum: ['residential', 'commercial', 'mixed', 'land', 'industrial'] }).notNull(),
+		completionPercentage: text('completion_percentage', { enum: ['0', '25', '50', '75', '100'] }).default('0'),
+		constructionStatus: text('construction_status', { enum: ['off_plan', 'under_construction', 'ready'] }).notNull(),
+		ownershipType: text('ownership_type', { enum: ['omani_only', 'gcc_only', 'all_nationalities'] }).notNull(),
+		offerType: text('offer_type', { enum: ['rent', 'sale'] }).notNull(),
 		price: integer('price'),
 		area: real('area'),
 		bedrooms: integer('bedrooms'),
 		bathrooms: integer('bathrooms'),
-		parkingSpaces: integer('parking_spaces'),
 		isPublished: integer('is_published', { mode: 'boolean' }).default(true).notNull(),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' })
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
@@ -236,7 +225,9 @@ export const unitTranslations = sqliteTable(
 			.references(() => units.id, { onDelete: 'cascade' }),
 		locale: text('locale').notNull(),
 		title: text('title').notNull(),
+		developer: text('developer').notNull(),
 		description: text('description').notNull(),
+		locationName: text('location_name').notNull(),
 		amenities: text('amenities', { mode: 'json' }),
 		details: text('details', { mode: 'json' })
 	},
@@ -262,10 +253,7 @@ export const media = sqliteTable(
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 			.notNull()
 	},
-	(table) => [
-		index('media_projectId_idx').on(table.projectId),
-		index('media_unitId_idx').on(table.unitId)
-	]
+	(table) => [index('media_projectId_idx').on(table.projectId), index('media_unitId_idx').on(table.unitId)]
 );
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({

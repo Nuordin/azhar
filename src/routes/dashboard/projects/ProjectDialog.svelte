@@ -32,24 +32,23 @@
 		{ value: '75', label: '75%' },
 		{ value: '100', label: '100%' }
 	];
+
 	let currentParentLabel = $derived(
 		projectForm.parentId === 'none'
 			? 'مشروع رئيسي (مستقل)'
-			: parentProjects.find((p) => p.id.toString() === projectForm.parentId)?.title ||
-					'اختر المشروع'
+			: parentProjects.find((p) => p.id.toString() === projectForm.parentId)?.title || 'اختر المشروع'
 	);
+
 	let currentOwnershipLabel = $derived(
 		ownershipOptions.find((o) => o.value === projectForm.ownershipType)?.label || 'اختر نوع التملك'
 	);
 
 	let currentStatusLabel = $derived(
-		statusOptions.find((s) => s.value === projectForm.constructionStatus)?.label ||
-			'اختر حالة البناء'
+		statusOptions.find((s) => s.value === projectForm.constructionStatus)?.label || 'اختر حالة البناء'
 	);
 
 	let currentPercentageLabel = $derived(
-		percentageOptions.find((p) => p.value === String(projectForm.completionPercentage))?.label ||
-			'اختر نسبة الإنجاز'
+		percentageOptions.find((p) => p.value === String(projectForm.completionPercentage))?.label || 'اختر نسبة الإنجاز'
 	);
 	const availableIcons = [
 		'UtensilsCrossed',
@@ -175,8 +174,7 @@
 <Dialog.Root bind:open={projectForm.isOpen}>
 	<Dialog.Content class="sm:max-w-150 dark" interactOutsideBehavior="close">
 		<Dialog.Header>
-			<Dialog.Title class="text-right"
-				>{projectForm.projectId ? 'تعديل المشروع' : 'إضافة مشروع جديد'}</Dialog.Title>
+			<Dialog.Title class="text-right">{projectForm.projectId ? 'تعديل المشروع' : 'إضافة مشروع جديد'}</Dialog.Title>
 			<Dialog.Description class="text-right">
 				الخطوة {projectForm.currentStep} من 4
 			</Dialog.Description>
@@ -187,11 +185,7 @@
 				<div class="space-y-4">
 					<div class="grid gap-2">
 						<Label for="title" class="text-right">اسم المشروع</Label>
-						<Input
-							id="title"
-							bind:value={projectForm.title}
-							placeholder="مثال: مشروع تلال مسقط"
-							class="text-right" />
+						<Input id="title" bind:value={projectForm.title} placeholder="مثال: مشروع تلال مسقط" class="text-right" />
 					</div>
 
 					<div class="grid gap-2">
@@ -229,12 +223,10 @@
 							<Select.Trigger class="text-right bg-muted/50">
 								{currentParentLabel}
 							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="none" class="text-right font-bold text-primary"
-									>مشروع رئيسي (مستقل)</Select.Item>
+							<Select.Content class="dark">
+								<Select.Item value="none" class="text-right font-bold text-primary">مشروع رئيسي (مستقل)</Select.Item>
 								{#each parentProjects as parent (parent.id)}
-									<Select.Item value={parent.id.toString()} class="text-right"
-										>{parent.title}</Select.Item>
+									<Select.Item value={parent.id.toString()} class="text-right">{parent.title}</Select.Item>
 								{/each}
 							</Select.Content>
 						</Select.Root>
@@ -245,7 +237,7 @@
 							<Select.Trigger class="text-right">
 								{currentOwnershipLabel}
 							</Select.Trigger>
-							<Select.Content>
+							<Select.Content class="dark">
 								{#each ownershipOptions as option (option.value)}
 									<Select.Item value={option.value} class="text-right">{option.label}</Select.Item>
 								{/each}
@@ -259,7 +251,7 @@
 							<Select.Trigger class="text-right">
 								{currentStatusLabel}
 							</Select.Trigger>
-							<Select.Content>
+							<Select.Content class="dark">
 								{#each statusOptions as option (option.value)}
 									<Select.Item value={option.value} class="text-right">{option.label}</Select.Item>
 								{/each}
@@ -273,7 +265,7 @@
 							<Select.Trigger class="text-right">
 								{currentPercentageLabel}
 							</Select.Trigger>
-							<Select.Content>
+							<Select.Content class="dark">
 								{#each percentageOptions as option (option.value)}
 									<Select.Item value={option.value} class="text-right">{option.label}</Select.Item>
 								{/each}
@@ -282,21 +274,12 @@
 					</div>
 					<div class="grid gap-2 col-span-2">
 						<Label for="price" class="text-right">السعر المبدئي (ر.ع)</Label>
-						<Input
-							id="price"
-							type="number"
-							bind:value={projectForm.startingPrice}
-							placeholder="0"
-							class="text-right" />
+						<Input id="price" type="text" bind:value={projectForm.startingPrice} placeholder="0" class="text-right" />
 					</div>
 
 					<div class="grid gap-2 col-span-2">
 						<Label for="delivery" class="text-right">تاريخ التسليم المتوقع</Label>
-						<Input
-							id="delivery"
-							type="date"
-							bind:value={projectForm.deliveryDate}
-							class="text-right" />
+						<Input id="delivery" type="date" bind:value={projectForm.deliveryDate} class="text-right" />
 					</div>
 
 					<div class="flex items-center gap-2 pt-4 col-span-2">
@@ -305,15 +288,14 @@
 							id="publish"
 							bind:checked={projectForm.isPublished}
 							class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
-						<Label for="publish" class="text-right cursor-pointer"
-							>نشر المشروع مباشرة في الموقع العام</Label>
+						<Label for="publish" class="text-right cursor-pointer">نشر المشروع مباشرة في الموقع العام</Label>
 					</div>
 				</div>
 			{:else if projectForm.currentStep === 3}
 				<div class="space-y-8 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
 					<div>
 						<div class="flex justify-between items-center mb-4">
-							<Label class="text-right font-bold text-lg">وسائل الراحة</Label>
+							<Label class="text-right font-bold text-lg">المرافق والخدمات</Label>
 							<Button variant="outline" size="sm" onclick={addAmenity}>
 								<Plus class="h-4 w-4 ml-2" /> إضافة
 							</Button>
@@ -323,10 +305,7 @@
 							{#each projectForm.amenities as amenity, i (i)}
 								<div class="flex gap-2 items-start bg-muted/30 p-3 rounded-md border">
 									<div class="grid gap-2 flex-1">
-										<Input
-											bind:value={amenity.title}
-											placeholder="الاسم (مثال: مسبح خاص)"
-											class="text-right" />
+										<Input bind:value={amenity.title} placeholder="الاسم (مثال: مسبح خاص)" class="text-right" />
 									</div>
 									<div class="flex items-center justify-center">
 										<Popover.Root>
@@ -334,7 +313,7 @@
 												class="inline-flex items-center justify-center rounded-md border bg-transparent h-10 w-10 hover:bg-muted transition-colors">
 												<Icons iconName={amenity.icon} />
 											</Popover.Trigger>
-											<Popover.Content class="w-fit p-2">
+											<Popover.Content class="w-fit p-2 dark">
 												<div class="grid grid-cols-4 gap-2">
 													{#each availableIcons as icon (icon)}
 														<Button
@@ -358,9 +337,7 @@
 								</div>
 							{/each}
 							{#if projectForm.amenities.length === 0}
-								<p class="text-sm text-muted-foreground text-center py-2">
-									لا توجد وسائل راحة مضافة.
-								</p>
+								<p class="text-sm text-muted-foreground text-center py-2">لا توجد مرافق مضافة.</p>
 							{/if}
 						</div>
 					</div>
@@ -379,10 +356,7 @@
 							{#each projectForm.paymentPlans as plan, i (i)}
 								<div class="flex gap-2 items-start bg-muted/30 p-3 rounded-md border">
 									<div class="grid gap-2 flex-1">
-										<Input
-											bind:value={plan.title}
-											placeholder="عنوان الخطة (مثال: دفع كاش)"
-											class="text-right" />
+										<Input bind:value={plan.title} placeholder="عنوان الخطة (مثال: دفع كاش)" class="text-right" />
 										<Textarea
 											bind:value={plan.description}
 											placeholder="التفاصيل (مثال: 10% مقدم و 90% عند الاستلام)"
@@ -417,10 +391,7 @@
 							{#each projectForm.details as detail, i (i)}
 								<div class="flex gap-2 items-start bg-muted/30 p-3 rounded-md border">
 									<div class="grid gap-2 flex-[0.4]">
-										<Input
-											bind:value={detail.title}
-											placeholder="العنوان (مثال: رسوم الصيانة)"
-											class="text-right" />
+										<Input bind:value={detail.title} placeholder="العنوان (مثال: رسوم الصيانة)" class="text-right" />
 									</div>
 									<div class="grid gap-2 flex-[0.6]">
 										<Input
@@ -438,9 +409,7 @@
 								</div>
 							{/each}
 							{#if projectForm.details.length === 0}
-								<p class="text-sm text-muted-foreground text-center py-2">
-									لا توجد تفاصيل إضافية مضافة.
-								</p>
+								<p class="text-sm text-muted-foreground text-center py-2">لا توجد تفاصيل إضافية مضافة.</p>
 							{/if}
 						</div>
 					</div>
@@ -458,29 +427,24 @@
 											? 'border-primary ring-1 ring-primary bg-primary/5'
 											: 'hover:border-muted-foreground/50'}">
 										{#if file.type === 'image'}
-											<img
-												src={file.url}
-												alt="preview"
-												class="w-full h-24 object-cover rounded-sm border" />
+											<img src={file.url} alt="preview" class="w-full h-24 object-cover rounded-sm border" />
 										{:else}
-											<div
-												class="w-full h-24 bg-muted border flex items-center justify-center rounded-sm">
+											<div class="w-full h-24 bg-muted border flex items-center justify-center rounded-sm">
 												<Video class="w-8 h-8 text-muted-foreground/50" />
 											</div>
 										{/if}
 
 										<div class="flex items-center justify-between mt-auto pt-1">
 											<button
-												class="text-xs font-medium transition-colors {projectForm.mainExistingMediaId ===
-													file.id && projectForm.thumbnailIndex === -1
+												class="text-xs font-medium transition-colors {projectForm.mainExistingMediaId === file.id &&
+												projectForm.thumbnailIndex === -1
 													? 'text-primary'
 													: 'text-muted-foreground hover:text-foreground'}"
 												onclick={() => {
 													projectForm.mainExistingMediaId = file.id;
 													projectForm.thumbnailIndex = -1; // إلغاء تحديد الصورة الجديدة كرئيسية
 												}}>
-												{projectForm.mainExistingMediaId === file.id &&
-												projectForm.thumbnailIndex === -1
+												{projectForm.mainExistingMediaId === file.id && projectForm.thumbnailIndex === -1
 													? '★ الرئيسية'
 													: 'تعيين كرئيسية'}
 											</button>
@@ -491,9 +455,7 @@
 												class="h-6 w-6 text-destructive hover:bg-destructive/10"
 												onclick={() => {
 													projectForm.deletedMediaIds.push(file.id);
-													projectForm.existingMedia = projectForm.existingMedia.filter(
-														(m) => m.id !== file.id
-													);
+													projectForm.existingMedia = projectForm.existingMedia.filter((m) => m.id !== file.id);
 												}}>
 												<Trash2 class="w-3.5 h-3.5" />
 											</Button>
@@ -506,8 +468,7 @@
 					{/if}
 					<div
 						class="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-10 gap-4 bg-muted/10 transition-colors hover:bg-muted/30">
-						<div
-							class="flex items-center justify-center w-14 h-14 rounded-full bg-background border shadow-sm">
+						<div class="flex items-center justify-center w-14 h-14 rounded-full bg-background border shadow-sm">
 							<Upload class="w-6 h-6 text-muted-foreground" />
 						</div>
 						<div class="text-center space-y-1">
@@ -541,8 +502,7 @@
 												alt="preview"
 												class="w-full h-24 object-cover rounded-sm border" />
 										{:else}
-											<div
-												class="w-full h-24 bg-muted border flex items-center justify-center rounded-sm">
+											<div class="w-full h-24 bg-muted border flex items-center justify-center rounded-sm">
 												<Video class="w-8 h-8 text-muted-foreground/50" />
 											</div>
 										{/if}
@@ -550,8 +510,7 @@
 										<div class="flex items-center justify-between mt-auto pt-1">
 											<button
 												type="button"
-												class="text-xs font-medium transition-colors {projectForm.thumbnailIndex ===
-												i
+												class="text-xs font-medium transition-colors {projectForm.thumbnailIndex === i
 													? 'text-primary'
 													: 'text-muted-foreground hover:text-foreground'}"
 												onclick={() => {
@@ -581,8 +540,7 @@
 		<Dialog.Footer class="flex justify-between items-center w-full gap-2 mt-4" dir="rtl">
 			<div class="flex gap-2">
 				{#if projectForm.currentStep > 1}
-					<Button type="button" variant="outline" onclick={() => projectForm.prevStep()}
-						>السابق</Button>
+					<Button type="button" variant="outline" onclick={() => projectForm.prevStep()}>السابق</Button>
 				{/if}
 
 				<Button
@@ -590,11 +548,7 @@
 					onsubmit={(e) => e.preventDefault()}
 					onclick={() => (projectForm.currentStep === 4 ? submitForm() : projectForm.nextStep())}
 					disabled={isSubmitting}>
-					{isSubmitting
-						? 'جاري الحفظ...'
-						: projectForm.currentStep === 4
-							? 'حفظ البيانات'
-							: 'التالي'}
+					{isSubmitting ? 'جاري الحفظ...' : projectForm.currentStep === 4 ? 'حفظ البيانات' : 'التالي'}
 				</Button>
 			</div>
 			<Button type="button" variant="ghost" onclick={() => projectForm.closeDialog()}>إلغاء</Button>

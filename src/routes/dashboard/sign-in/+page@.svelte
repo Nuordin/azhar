@@ -22,7 +22,7 @@
 				},
 				onSuccess: () => {
 					// Redirect to your admin dashboard
-					window.location.href = '/dashboard';
+					window.location.href = '/dashboard/projects';
 				},
 				onError: (ctx) => {
 					console.error(ctx);
@@ -57,12 +57,7 @@
 						<div class="flex items-center">
 							<FieldLabel for="password">كلمة المرور</FieldLabel>
 						</div>
-						<Input
-							id="password"
-							type="password"
-							required
-							bind:value={password}
-							disabled={loading} />
+						<Input id="password" type="password" required bind:value={password} disabled={loading} />
 					</Field>
 					<Field>
 						<Button type="submit" class="w-full" disabled={loading} onclick={handleLogin}>
