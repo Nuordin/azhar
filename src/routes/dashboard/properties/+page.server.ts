@@ -30,8 +30,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			.leftJoin(unitTranslations, eq(units.id, unitTranslations.unitId))
 			.where(eq(unitTranslations.locale, 'ar'))
 			.limit(limit)
-			.offset(offset)
-			.orderBy(units.updatedAt);
+			.offset(offset);
 
 		const projectList = await db
 			.select({ id: projects.id, title: projectTranslations.title })

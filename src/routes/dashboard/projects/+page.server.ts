@@ -41,8 +41,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		.leftJoin(projectTranslations, eq(projects.id, projectTranslations.projectId))
 		.where(eq(projectTranslations.locale, 'ar'))
 		.limit(limit)
-		.offset(offset)
-		.orderBy(projects.updatedAt);
+		.offset(offset);
 
 	return {
 		projects: projectsList,
