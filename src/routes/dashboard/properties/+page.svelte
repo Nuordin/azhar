@@ -183,7 +183,7 @@
 </script>
 
 <header class="flex h-16 shrink-0 items-center gap-2">
-	<div class="flex items-center gap-2 px-4">
+	<div class="flex items-center gap-2 px-16 w-full">
 		<Sidebar.Trigger class="-ms-1" />
 		<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
 		<Breadcrumb.Root>
@@ -191,7 +191,7 @@
 				<Breadcrumb.Item class="hidden md:block">
 					<Breadcrumb.Link href="">إدارة الموقع</Breadcrumb.Link>
 				</Breadcrumb.Item>
-				<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
+				<Breadcrumb.Separator class="hidden md:block rotate-180" />
 				<Breadcrumb.Page class="hidden md:block">إدارة الوحدات</Breadcrumb.Page>
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
