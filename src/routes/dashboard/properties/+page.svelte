@@ -189,8 +189,10 @@
 		<Breadcrumb.Root>
 			<Breadcrumb.List>
 				<Breadcrumb.Item class="hidden md:block">
-					<Breadcrumb.Link href="">إدارة الوحدات</Breadcrumb.Link>
+					<Breadcrumb.Link href="">إدارة الموقع</Breadcrumb.Link>
 				</Breadcrumb.Item>
+				<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
+				<Breadcrumb.Page class="hidden md:block">إدارة الوحدات</Breadcrumb.Page>
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
 		<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
