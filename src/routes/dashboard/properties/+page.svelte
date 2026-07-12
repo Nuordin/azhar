@@ -36,7 +36,7 @@
 
 	let { data } = $props();
 
-	let { unitList, projectList } = $derived(data);
+	let { unitList, projectList, pagination } = $derived(data);
 	let isSubmitting = $state(false);
 	const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
 		ready: { label: 'جاهز', variant: 'default' },
@@ -227,6 +227,31 @@
 				{/each}
 			</Table.Body>
 		</Table.Root>
+
+		{#if pagination && pagination.totalPages > 1}
+			<div class="flex items-center justify-between px-4 py-4 border-t">
+				<div class="text-sm text-muted-foreground">
+					صفحة {pagination.currentPage} من {pagination.totalPages}
+					(إجمالي {pagination.totalCount} مشروع)
+				</div>
+				<div class="flex items-center gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						href="?page={pagination.currentPage - 1}"
+						disabled={pagination.currentPage <= 1}>
+						السابق
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						href="?page={pagination.currentPage + 1}"
+						disabled={pagination.currentPage >= pagination.totalPages}>
+						التالي
+					</Button>
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -386,10 +411,9 @@
 			نوع الوحدة
 			<Select.Root type="single" bind:value={propertiesForm.type}>
 				<Select.Trigger class="text-right dark  w-full">
-					{unitTypesMap[propertiesForm.type] || 'وحدة مستقلة'}
+					{unitTypesMap[propertiesForm.type] || 'نوع الوحدة'}
 				</Select.Trigger>
 				<Select.Content class="max-h-60 dark">
-					<Select.Item value="none" class="text-right font-bold text-primary">وحدة مستقلة</Select.Item>
 					{#each unitTypes as property (property)}
 						<Select.Item value={property} class="text-right">{unitTypesMap[property]}</Select.Item>
 					{/each}

@@ -11,8 +11,11 @@ export const load: PageServerLoad = async ({ url }) => {
 	const page = url.searchParams.get('page') ?? '1';
 	const limit = 10;
 	const offset = (parseInt(page) - 1) * limit;
+
 	try {
-		const resualtCount = await db.$count(units);
+		const totalCount = await db.$count(units);
+		const totalPages = Math.ceil(totalCount / limit);
+
 		const unitList = await db
 			.select({
 				id: units.id,
@@ -34,7 +37,16 @@ export const load: PageServerLoad = async ({ url }) => {
 			.select({ id: projects.id, title: projectTranslations.title })
 			.from(projects)
 			.leftJoin(projectTranslations, eq(projects.id, projectTranslations.projectId));
-		return { unitList, resualtCount, projectList };
+		return {
+			unitList,
+			projectList,
+			pagination: {
+				totalCount,
+				totalPages,
+				currentPage: Number(page),
+				limit
+			}
+		};
 	} catch (error) {
 		console.error(error);
 		return { error: 'Failed to load properties' };
