@@ -42,7 +42,7 @@
 				</Breadcrumb.Item>
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
-		<!-- <Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" /> -->
+		<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
 		<Button variant="outline" onclick={() => projectForm.openDialog()}>إضافة مشروع جديد<Plus /></Button>
 	</div>
 </header>
