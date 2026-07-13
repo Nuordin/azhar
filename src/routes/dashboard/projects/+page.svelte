@@ -36,7 +36,7 @@
 				<Breadcrumb.Item class="hidden md:block">
 					<Breadcrumb.Link href="">إدارة الموقع</Breadcrumb.Link>
 				</Breadcrumb.Item>
-				<Breadcrumb.Separator class="hidden md:block" />
+				<Breadcrumb.Separator class="hidden md:block rotate-180" />
 				<Breadcrumb.Item>
 					<Breadcrumb.Page>إدارة المشاريع</Breadcrumb.Page>
 				</Breadcrumb.Item>
