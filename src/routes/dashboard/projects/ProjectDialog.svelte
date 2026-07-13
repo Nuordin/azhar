@@ -185,11 +185,7 @@
 				<div class="space-y-4">
 					<div class="grid gap-2">
 						<Label for="title" class="text-right">اسم المشروع</Label>
-						<Input
-							id="title"
-							bind:value={projectForm.title}
-							placeholder="مثال: مشروع تلال مسقط"
-							class="text-right bg-muted/50" />
+						<Input id="title" bind:value={projectForm.title} placeholder="مثال: مشروع تلال مسقط" class="text-right" />
 					</div>
 
 					<div class="grid gap-2">
@@ -198,7 +194,7 @@
 							id="developer"
 							bind:value={projectForm.developerName}
 							placeholder="مثال: الشركة العقارية الرائدة"
-							class="text-right bg-muted/50" />
+							class="text-right" />
 					</div>
 
 					<div class="grid gap-2">
@@ -207,7 +203,7 @@
 							id="location"
 							bind:value={projectForm.locationName}
 							placeholder="مثال: غلا، مسقط"
-							class="text-right bg-muted/50" />
+							class="text-right" />
 					</div>
 
 					<div class="grid gap-2">
@@ -216,7 +212,7 @@
 							id="desc"
 							bind:value={projectForm.description}
 							placeholder="اكتب وصفاً تفصيلياً للمشروع المميزات المحيطة به..."
-							class="text-right min-h-25 max-h-50 bg-muted/50" />
+							class="text-right min-h-25 max-h-50" />
 					</div>
 				</div>
 			{:else if projectForm.currentStep === 2}
@@ -224,7 +220,7 @@
 					<div class="grid gap-2">
 						<Label class="text-right">يتبع لمشروع (اختياري)</Label>
 						<Select.Root type="single" bind:value={projectForm.parentId}>
-							<Select.Trigger class="text-right bg-muted/50 w-full">
+							<Select.Trigger class="text-right w-full">
 								{currentParentLabel}
 							</Select.Trigger>
 							<Select.Content class="dark">
@@ -238,7 +234,7 @@
 					<div class="grid gap-2">
 						<Label class="text-right">نوع التملك</Label>
 						<Select.Root type="single" bind:value={projectForm.ownershipType}>
-							<Select.Trigger class="text-right bg-muted/50 w-full">
+							<Select.Trigger class="text-right w-full">
 								{currentOwnershipLabel}
 							</Select.Trigger>
 							<Select.Content class="dark">
@@ -252,7 +248,7 @@
 					<div class="grid gap-2">
 						<Label class="text-right">حالة البناء</Label>
 						<Select.Root type="single" bind:value={projectForm.constructionStatus}>
-							<Select.Trigger class="text-right bg-muted/50 w-full">
+							<Select.Trigger class="text-right w-full">
 								{currentStatusLabel}
 							</Select.Trigger>
 							<Select.Content class="dark">
@@ -266,7 +262,7 @@
 					<div class="grid gap-2">
 						<Label class="text-right">نسبة الإنجاز</Label>
 						<Select.Root type="single" bind:value={projectForm.completionPercentage}>
-							<Select.Trigger class="text-right bg-muted/50 w-full">
+							<Select.Trigger class="text-right w-full">
 								{currentPercentageLabel}
 							</Select.Trigger>
 							<Select.Content class="dark">
@@ -278,17 +274,12 @@
 					</div>
 					<div class="grid gap-2 col-span-2">
 						<Label for="price" class="text-right">السعر المبدئي (ر.ع)</Label>
-						<Input
-							id="price"
-							type="text"
-							bind:value={projectForm.startingPrice}
-							placeholder="0"
-							class="text-right bg-muted/50" />
+						<Input id="price" type="text" bind:value={projectForm.startingPrice} placeholder="0" class="text-right" />
 					</div>
 
 					<div class="grid gap-2 col-span-2">
 						<Label for="delivery" class="text-right">تاريخ التسليم المتوقع</Label>
-						<Input id="delivery" type="date" bind:value={projectForm.deliveryDate} class="text-right bg-muted/50" />
+						<Input id="delivery" type="date" bind:value={projectForm.deliveryDate} class="text-right" />
 					</div>
 
 					<div class="flex items-center gap-2 pt-4 col-span-2">
