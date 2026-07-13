@@ -17,7 +17,7 @@ export class ProjectFormState {
 	completionPercentage = $state('');
 	startingPrice = $state<number | undefined>(undefined);
 	deliveryDate = $state('');
-	isPublished = $state(false);
+	isPublished = $state(true);
 
 	amenities = $state<{ title: string; icon: string }[]>([]);
 	paymentPlans = $state<{ title: string; description: string }[]>([]);

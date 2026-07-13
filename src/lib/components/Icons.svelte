@@ -17,9 +17,9 @@
 	} from '@lucide/svelte';
 
 	const iconMap: Record<string, Component<LucideProps, object, ''>> = {
+		Bike: Bike,
 		UtensilsCrossed: UtensilsCrossed,
 		Dumbbell: Dumbbell,
-		Bike: Bike,
 		TreePine: TreePine,
 		WavesHorizontal: WavesHorizontal,
 		TowerControl: TowerControl,

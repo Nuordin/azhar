@@ -51,9 +51,9 @@
 		percentageOptions.find((p) => p.value === String(projectForm.completionPercentage))?.label || 'اختر نسبة الإنجاز'
 	);
 	const availableIcons = [
+		'Bike',
 		'UtensilsCrossed',
 		'Dumbbell',
-		'Bike',
 		'TreePine',
 		'WavesHorizontal',
 		'TowerControl',
@@ -185,7 +185,11 @@
 				<div class="space-y-4">
 					<div class="grid gap-2">
 						<Label for="title" class="text-right">اسم المشروع</Label>
-						<Input id="title" bind:value={projectForm.title} placeholder="مثال: مشروع تلال مسقط" class="text-right" />
+						<Input
+							id="title"
+							bind:value={projectForm.title}
+							placeholder="مثال: مشروع تلال مسقط"
+							class="text-right bg-muted/50" />
 					</div>
 
 					<div class="grid gap-2">
@@ -194,7 +198,7 @@
 							id="developer"
 							bind:value={projectForm.developerName}
 							placeholder="مثال: الشركة العقارية الرائدة"
-							class="text-right" />
+							class="text-right bg-muted/50" />
 					</div>
 
 					<div class="grid gap-2">
@@ -203,7 +207,7 @@
 							id="location"
 							bind:value={projectForm.locationName}
 							placeholder="مثال: غلا، مسقط"
-							class="text-right" />
+							class="text-right bg-muted/50" />
 					</div>
 
 					<div class="grid gap-2">
@@ -212,7 +216,7 @@
 							id="desc"
 							bind:value={projectForm.description}
 							placeholder="اكتب وصفاً تفصيلياً للمشروع المميزات المحيطة به..."
-							class="text-right min-h-25 max-h-50" />
+							class="text-right min-h-25 max-h-50 bg-muted/50" />
 					</div>
 				</div>
 			{:else if projectForm.currentStep === 2}
@@ -220,11 +224,11 @@
 					<div class="grid gap-2">
 						<Label class="text-right">يتبع لمشروع (اختياري)</Label>
 						<Select.Root type="single" bind:value={projectForm.parentId}>
-							<Select.Trigger class="text-right bg-muted/50">
+							<Select.Trigger class="text-right bg-muted/50 w-full">
 								{currentParentLabel}
 							</Select.Trigger>
 							<Select.Content class="dark">
-								<Select.Item value="none" class="text-right font-bold text-primary">مشروع رئيسي (مستقل)</Select.Item>
+								<Select.Item value="none" class="text-right">مشروع رئيسي (مستقل)</Select.Item>
 								{#each parentProjects as parent (parent.id)}
 									<Select.Item value={parent.id.toString()} class="text-right">{parent.title}</Select.Item>
 								{/each}
@@ -234,7 +238,7 @@
 					<div class="grid gap-2">
 						<Label class="text-right">نوع التملك</Label>
 						<Select.Root type="single" bind:value={projectForm.ownershipType}>
-							<Select.Trigger class="text-right">
+							<Select.Trigger class="text-right bg-muted/50 w-full">
 								{currentOwnershipLabel}
 							</Select.Trigger>
 							<Select.Content class="dark">
@@ -248,7 +252,7 @@
 					<div class="grid gap-2">
 						<Label class="text-right">حالة البناء</Label>
 						<Select.Root type="single" bind:value={projectForm.constructionStatus}>
-							<Select.Trigger class="text-right">
+							<Select.Trigger class="text-right bg-muted/50 w-full">
 								{currentStatusLabel}
 							</Select.Trigger>
 							<Select.Content class="dark">
@@ -262,7 +266,7 @@
 					<div class="grid gap-2">
 						<Label class="text-right">نسبة الإنجاز</Label>
 						<Select.Root type="single" bind:value={projectForm.completionPercentage}>
-							<Select.Trigger class="text-right">
+							<Select.Trigger class="text-right bg-muted/50 w-full">
 								{currentPercentageLabel}
 							</Select.Trigger>
 							<Select.Content class="dark">
@@ -274,12 +278,17 @@
 					</div>
 					<div class="grid gap-2 col-span-2">
 						<Label for="price" class="text-right">السعر المبدئي (ر.ع)</Label>
-						<Input id="price" type="text" bind:value={projectForm.startingPrice} placeholder="0" class="text-right" />
+						<Input
+							id="price"
+							type="text"
+							bind:value={projectForm.startingPrice}
+							placeholder="0"
+							class="text-right bg-muted/50" />
 					</div>
 
 					<div class="grid gap-2 col-span-2">
 						<Label for="delivery" class="text-right">تاريخ التسليم المتوقع</Label>
-						<Input id="delivery" type="date" bind:value={projectForm.deliveryDate} class="text-right" />
+						<Input id="delivery" type="date" bind:value={projectForm.deliveryDate} class="text-right bg-muted/50" />
 					</div>
 
 					<div class="flex items-center gap-2 pt-4 col-span-2">
@@ -305,7 +314,7 @@
 							{#each projectForm.amenities as amenity, i (i)}
 								<div class="flex gap-2 items-start bg-muted/30 p-3 rounded-md border">
 									<div class="grid gap-2 flex-1">
-										<Input bind:value={amenity.title} placeholder="الاسم (مثال: مسبح خاص)" class="text-right" />
+										<Input bind:value={amenity.title} placeholder="العنوان (مثال: مسبح خاص)" class="text-right h-10" />
 									</div>
 									<div class="flex items-center justify-center">
 										<Popover.Root>
