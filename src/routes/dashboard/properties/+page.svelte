@@ -13,7 +13,7 @@
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { Switch } from '$lib/components/ui/switch/index.js';
-	import { Plus, SquarePen, Trash2, Upload, Video } from '@lucide/svelte';
+	import { Plus, Trash2, Upload, Video } from '@lucide/svelte';
 	import { Progress } from '$lib/components/ui/progress/index.js';
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';

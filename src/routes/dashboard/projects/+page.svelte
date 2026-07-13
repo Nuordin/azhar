@@ -10,7 +10,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { enhance } from '$app/forms';
 
-	import { Plus, SquarePen, Trash2 } from '@lucide/svelte';
+	import { Plus, Trash2 } from '@lucide/svelte';
 	import { projectForm } from './state.svelte.js';
 	import ProjectDialog from './ProjectDialog.svelte';
 	let { data } = $props();
@@ -36,13 +36,13 @@
 				<Breadcrumb.Item class="hidden md:block">
 					<Breadcrumb.Link href="">إدارة الموقع</Breadcrumb.Link>
 				</Breadcrumb.Item>
-				<Breadcrumb.Separator class="hidden md:block rotate-180" />
+				<Breadcrumb.Separator class="hidden md:block" />
 				<Breadcrumb.Item>
 					<Breadcrumb.Page>إدارة المشاريع</Breadcrumb.Page>
 				</Breadcrumb.Item>
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
-		<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
+		<!-- <Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" /> -->
 		<Button variant="outline" onclick={() => projectForm.openDialog()}>إضافة مشروع جديد<Plus /></Button>
 	</div>
 </header>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '$lib/server/db';
 import { units, unitTranslations, projects, projectTranslations, media } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
@@ -55,7 +56,7 @@ export const load: PageServerLoad = async ({ url }) => {
 export const actions = {
 	createUnit: async ({ request }) => {
 		const formData = await request.formData();
-		const unit_id: number | null = Number(formData.get('unit_id')) || null;
+		// const unit_id: number | null = Number(formData.get('unit_id')) || null;
 		let parent_id: number | null = Number(formData.get('parent_id')) || null;
 		const title = formData.get('name') || null;
 		const developer = formData.get('developer') || null;
@@ -114,7 +115,7 @@ export const actions = {
 			const [newUnit] = await db
 				.insert(units)
 				.values({
-					parentId: parent_id,
+					projectId: parent_id,
 					type: unit_type as any,
 					status: unit_state as any,
 					category: category_type as any,
