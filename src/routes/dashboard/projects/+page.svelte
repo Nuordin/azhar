@@ -10,7 +10,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { enhance } from '$app/forms';
 
-	import { Plus, Trash2 } from '@lucide/svelte';
+	import { Plus, SquarePen, Trash2 } from '@lucide/svelte';
 	import { projectForm } from './state.svelte.js';
 	import ProjectDialog from './ProjectDialog.svelte';
 	let { data } = $props();
@@ -122,7 +122,7 @@
 
 						<Table.Cell class="text-left">
 							<div class="flex justify-end gap-2">
-								<!-- <Button
+								<Button
 									variant="ghost"
 									size="icon"
 									title="تعديل"
@@ -145,7 +145,7 @@
 										}
 									}}>
 									<SquarePen class="h-4 w-4 text-muted-foreground" />
-								</Button> -->
+								</Button>
 
 								<form
 									method="POST"
