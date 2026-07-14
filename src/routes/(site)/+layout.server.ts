@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import type { LayoutServerLoad } from './$types';
-import { redirect } from '@sveltejs/kit';
 
 const LOCALES_DIR = path.resolve(process.cwd(), '../ASSETS/Locales');
 
@@ -21,7 +20,6 @@ export const load: LayoutServerLoad = ({ cookies }) => {
 		console.error('Could not read locales directory:', error);
 	}
 
-	redirect(302, '/dashboard/properties');
 	// Pass both the active language AND the array of available languages down
 	return {
 		locale: activeLocale,
