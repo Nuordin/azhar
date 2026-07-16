@@ -13,7 +13,7 @@
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { Switch } from '$lib/components/ui/switch/index.js';
-	import { Plus, Trash2, Upload, Video } from '@lucide/svelte';
+	import { Plus, Trash2, Upload, Video, Eye, SquarePen } from '@lucide/svelte';
 	import { Progress } from '$lib/components/ui/progress/index.js';
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
@@ -153,12 +153,18 @@
 		formData.append('details', JSON.stringify(propertiesForm.details));
 		formData.append('thumbnail', propertiesForm.thumbnail.toString());
 		formData.append('is_published', propertiesForm.isPublished.toString());
+		if (propertiesForm.unitId) {
+			formData.append('deletedMediaIds', JSON.stringify(propertiesForm.deletedMediaIds));
+			if (propertiesForm.mainExistingMediaId) {
+				formData.append('mainExistingMediaId', String(propertiesForm.mainExistingMediaId));
+			}
+		}
 		propertiesForm.media.forEach((file) => {
 			formData.append(`media`, file);
 		});
 
 		try {
-			const actionUrl = '?/createUnit';
+			const actionUrl = propertiesForm.unitId ? '?/updateUnit' : '?/createUnit';
 			const response = await fetch(actionUrl, {
 				method: 'POST',
 				body: formData
@@ -196,7 +202,12 @@
 			</Breadcrumb.List>
 		</Breadcrumb.Root>
 		<Separator orientation="vertical" class="me-2 data-[orientation=vertical]:h-4" />
-		<Button variant="outline" onclick={() => propertiesForm.openDialog()}>إضافة وحدة جديد<Plus /></Button>
+		<Button
+			variant="outline"
+			onclick={() => {
+				propertiesForm.resetForm();
+				propertiesForm.openDialog();
+			}}>إضافة وحدة جديد<Plus /></Button>
 	</div>
 </header>
 
@@ -222,7 +233,12 @@
 						<Table.Cell colspan={7} class="text-center py-10 text-muted-foreground">
 							<div class="flex flex-col items-center gap-4">
 								<span class="mb-0"> لا توجد وحدات مضافة حتى الآن. </span>
-								<Button variant="outline" onclick={() => propertiesForm.openDialog()}>إضافة وحدة جديد<Plus /></Button>
+								<Button
+									variant="outline"
+									onclick={() => {
+										propertiesForm.resetForm();
+										propertiesForm.openDialog();
+									}}>إضافة وحدة جديد<Plus /></Button>
 							</div>
 						</Table.Cell>
 					</Table.Row>
@@ -315,9 +331,52 @@
 
 		<Table.Cell class="text-left">
 			<div class="flex justify-end gap-2">
-				<!-- <Button variant="ghost" size="icon" title="تعديل">
+				<Button
+					variant="ghost"
+					size="icon"
+					title="عرض"
+					onclick={async (e) => {
+						const btn = e.currentTarget as HTMLButtonElement;
+						btn.disabled = true;
+						try {
+							const res = await fetch(`/api/units/${unit.id}`);
+							if (res.ok) {
+								propertiesForm.openView(await res.json());
+							} else {
+								alert('حدث خطأ أثناء جلب البيانات');
+							}
+						} catch (err) {
+							console.error(err);
+						} finally {
+							btn.disabled = false;
+						}
+					}}>
+					<Eye class="h-4 w-4 text-muted-foreground" />
+				</Button>
+
+				<Button
+					variant="ghost"
+					size="icon"
+					title="تعديل"
+					onclick={async (e) => {
+						const btn = e.currentTarget as HTMLButtonElement;
+						btn.disabled = true;
+						try {
+							const res = await fetch(`/api/units/${unit.id}`);
+							if (res.ok) {
+								propertiesForm.populate(await res.json());
+								propertiesForm.openDialog();
+							} else {
+								alert('حدث خطأ أثناء جلب بيانات الوحدة');
+							}
+						} catch (err) {
+							console.error(err);
+						} finally {
+							btn.disabled = false;
+						}
+					}}>
 					<SquarePen class="h-4 w-4 text-muted-foreground" />
-				</Button> -->
+				</Button>
 
 				<form
 					method="POST"
@@ -356,45 +415,166 @@
 	<Dialog.Root bind:open={propertiesForm.isOpen}>
 		<Dialog.Content class="dark max-h-[70vh] min-h-150 min-w-150 overflow-y-auto">
 			<Dialog.Header>
-				<Dialog.Title>إضافة وحدة</Dialog.Title>
-				<Dialog.Description>الخطوة {propertiesForm.currentStep} من 4</Dialog.Description>
+				<Dialog.Title>
+					{propertiesForm.mode === 'view'
+						? 'تفاصيل الوحدة'
+						: propertiesForm.unitId
+							? 'تعديل وحدة'
+							: 'إضافة وحدة'}
+				</Dialog.Title>
+				{#if propertiesForm.mode !== 'view'}
+					<Dialog.Description>الخطوة {propertiesForm.currentStep} من 4</Dialog.Description>
+				{/if}
 			</Dialog.Header>
-			<div class="space-y-4">
-				<!-- 1st Step -->
-				{#if propertiesForm.currentStep === 1}
-					{@render firstInformationForm()}
-				{:else if propertiesForm.currentStep === 2}
-					{@render secondInformationForm()}
-				{:else if propertiesForm.currentStep === 3}
-					{@render amenityForm()}
-				{:else if propertiesForm.currentStep === 4}
-					{@render mediaUploadForm()}
-				{/if}
-			</div>
-			<Dialog.Footer class="flex flex-row justify-end  items-end gap-2">
-				<div class="w-full text-red-400 text-xs">{err_msg}</div>
-				{#if propertiesForm.currentStep > 1}
-					<Button variant="outline" size="sm" class="cursor-pointer" onclick={() => propertiesForm.prevStep()}>
-						السابق</Button>
-				{/if}
-				{#if propertiesForm.currentStep <= 3}
-					<Button variant="outline" size="sm" class="cursor-pointer" onclick={() => propertiesForm.nextStep()}>
-						التالي</Button>
-				{:else}
-					<Button
-						variant="outline"
-						size="sm"
-						class="cursor-pointer"
-						disabled={isSubmitting}
-						onclick={() => submitForm()}>
-						{isSubmitting ? 'جاري حفظ الوحدة...' : 'حفظ'}
-					</Button>
-				{/if}
-				<Button variant="ghost" size="sm" class="cursor-pointer px-4" onclick={() => propertiesForm.closeDialog()}>
-					إلغاء</Button>
-			</Dialog.Footer>
+			{#if propertiesForm.mode === 'view'}
+				<div class="space-y-4">
+					{@render viewBody()}
+				</div>
+				<Dialog.Footer class="flex flex-row justify-end items-end gap-2">
+					<Button variant="ghost" size="sm" class="cursor-pointer px-4" onclick={() => propertiesForm.closeDialog()}>
+						إغلاق</Button>
+				</Dialog.Footer>
+			{:else}
+				<div class="space-y-4">
+					<!-- 1st Step -->
+					{#if propertiesForm.currentStep === 1}
+						{@render firstInformationForm()}
+					{:else if propertiesForm.currentStep === 2}
+						{@render secondInformationForm()}
+					{:else if propertiesForm.currentStep === 3}
+						{@render amenityForm()}
+					{:else if propertiesForm.currentStep === 4}
+						{@render mediaUploadForm()}
+					{/if}
+				</div>
+				<Dialog.Footer class="flex flex-row justify-end  items-end gap-2">
+					<div class="w-full text-red-400 text-xs">{err_msg}</div>
+					{#if propertiesForm.currentStep > 1}
+						<Button variant="outline" size="sm" class="cursor-pointer" onclick={() => propertiesForm.prevStep()}>
+							السابق</Button>
+					{/if}
+					{#if propertiesForm.currentStep <= 3}
+						<Button variant="outline" size="sm" class="cursor-pointer" onclick={() => propertiesForm.nextStep()}>
+							التالي</Button>
+					{:else}
+						<Button
+							variant="outline"
+							size="sm"
+							class="cursor-pointer"
+							disabled={isSubmitting}
+							onclick={() => submitForm()}>
+							{isSubmitting ? 'جاري حفظ الوحدة...' : 'حفظ'}
+						</Button>
+					{/if}
+					<Button variant="ghost" size="sm" class="cursor-pointer px-4" onclick={() => propertiesForm.closeDialog()}>
+						إلغاء</Button>
+				</Dialog.Footer>
+			{/if}
 		</Dialog.Content>
 	</Dialog.Root>
+{/snippet}
+
+{#snippet viewField(label: string, value: string)}
+	<div class="grid gap-1">
+		<Label class="text-right text-muted-foreground text-xs">{label}</Label>
+		<p class="text-right text-sm">{value || '-'}</p>
+	</div>
+{/snippet}
+
+{#snippet viewBody()}
+	<div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar" dir="rtl">
+		<div class="grid grid-cols-2 gap-4">
+			{@render viewField('اسم الوحدة', propertiesForm.name)}
+			{@render viewField('اسم المطور', propertiesForm.developer)}
+			{@render viewField('الموقع', propertiesForm.location)}
+			{@render viewField('نوع الوحدة', unitTypesMap[propertiesForm.type])}
+			{@render viewField('تصنيف الوحدة', categoryTypeMap[propertiesForm.categoryType])}
+			{@render viewField('نوع العرض', offerMap[propertiesForm.offerType])}
+			{@render viewField('حالة الوحدة', unitStatusMap[propertiesForm.status])}
+			{@render viewField('نوع التملك', ownershipTypeMap[propertiesForm.ownershipType])}
+			{@render viewField('حالة البناء', constructionMap[propertiesForm.constructionStatus])}
+			{@render viewField('نسبة الإنجاز', propertiesForm.completionProgress ? `${propertiesForm.completionProgress}%` : '')}
+			{@render viewField('السعر', formatCurrency(Number(propertiesForm.price) || null))}
+			{@render viewField('المساحة', propertiesForm.area)}
+			{@render viewField('عدد الغرف', propertiesForm.bedroomCount)}
+			{@render viewField('عدد الحمامات', propertiesForm.bathroomCount)}
+			{@render viewField('تاريخ التسليم', propertiesForm.deliveryDate)}
+			<div class="grid gap-1">
+				<Label class="text-right text-muted-foreground text-xs">حالة النشر</Label>
+				<Badge variant={propertiesForm.isPublished ? 'default' : 'outline'} class="w-fit">
+					{propertiesForm.isPublished ? 'منشورة' : 'غير منشورة'}
+				</Badge>
+			</div>
+		</div>
+
+		<div class="grid gap-1">
+			<Label class="text-right text-muted-foreground text-xs">وصف الوحدة</Label>
+			<p class="text-right text-sm whitespace-pre-wrap">{propertiesForm.description || '-'}</p>
+		</div>
+
+		<Separator />
+		<div>
+			<Label class="text-right font-bold">المرافق والخدمات</Label>
+			{#if propertiesForm.amenities.length > 0}
+				<div class="grid grid-cols-2 gap-3 mt-3">
+					{#each propertiesForm.amenities as amenity, i (i)}
+						<div class="flex items-center gap-2 bg-muted/30 p-2 rounded-md border">
+							<Icons iconName={amenity.icon} />
+							<span class="text-sm">{amenity.title}</span>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground text-center py-2">لا توجد مرافق.</p>
+			{/if}
+		</div>
+
+		<Separator />
+		<div>
+			<Label class="text-right font-bold">خطط الدفع</Label>
+			{#if propertiesForm.paymentPlans.length > 0}
+				<div class="space-y-2 mt-3">
+					{#each propertiesForm.paymentPlans as plan, i (i)}
+						<div class="bg-muted/30 p-3 rounded-md border">
+							<p class="text-right font-medium text-sm">{plan.title}</p>
+							<p class="text-right text-sm text-muted-foreground">{plan.description}</p>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground text-center py-2">لا توجد خطط دفع.</p>
+			{/if}
+		</div>
+
+		<Separator />
+		<div>
+			<Label class="text-right font-bold">تفاصيل إضافية</Label>
+			{#if propertiesForm.details.length > 0}
+				<div class="space-y-2 mt-3">
+					{#each propertiesForm.details as detail, i (i)}
+						<div class="bg-muted/30 p-3 rounded-md border">
+							<p class="text-right font-medium text-sm">{detail.title}</p>
+							<p class="text-right text-sm text-muted-foreground">{detail.description}</p>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground text-center py-2">لا توجد تفاصيل إضافية.</p>
+			{/if}
+		</div>
+
+		{#if propertiesForm.existingMedia.length > 0}
+			<Separator />
+			<div class="space-y-2">
+				<Label class="text-right font-bold">الوسائط</Label>
+				<div class="grid grid-cols-3 gap-4">
+					{#each propertiesForm.existingMedia as file (file.id)}
+						{@render media(file.url, file.type === 'video', propertiesForm.mainExistingMediaId === file.id, () => {}, () => {}, true)}
+					{/each}
+				</div>
+			</div>
+		{/if}
+	</div>
 {/snippet}
 
 {#snippet firstInformationForm()}
@@ -683,45 +863,88 @@
 {/snippet}
 
 {#snippet mediaUploadForm()}
-	<div
-		class="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-10 gap-4 bg-muted/10 transition-colors hover:bg-muted/30">
-		<div class="flex items-center justify-center w-14 h-14 rounded-full bg-background border shadow-sm">
-			<Upload class="w-6 h-6 text-muted-foreground" />
-		</div>
-		<div class="text-center space-y-1">
-			<h3 class="font-medium text-lg">ارفع صور وفيديوهات الوحدة</h3>
-			<p class="text-sm text-muted-foreground">صيغ PNG, JPG, MP4 (الحد الأقصى 10MB)</p>
+	<div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+		{#if propertiesForm.existingMedia.length > 0}
+			<div class="space-y-2">
+				<Label class="text-right font-bold">الصور الحالية</Label>
+				<div class="grid grid-cols-3 gap-4">
+					{#each propertiesForm.existingMedia as file (file.id)}
+						{@render media(
+							file.url,
+							file.type === 'video',
+							propertiesForm.mainExistingMediaId === file.id && propertiesForm.thumbnail === -1,
+							() => {
+								propertiesForm.mainExistingMediaId = file.id;
+								propertiesForm.thumbnail = -1;
+							},
+							() => {
+								propertiesForm.deletedMediaIds.push(file.id);
+								propertiesForm.existingMedia = propertiesForm.existingMedia.filter((m) => m.id !== file.id);
+							}
+						)}
+					{/each}
+				</div>
+			</div>
+			<Separator />
+		{/if}
+		<div
+			class="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-10 gap-4 bg-muted/10 transition-colors hover:bg-muted/30">
+			<div class="flex items-center justify-center w-14 h-14 rounded-full bg-background border shadow-sm">
+				<Upload class="w-6 h-6 text-muted-foreground" />
+			</div>
+			<div class="text-center space-y-1">
+				<h3 class="font-medium text-lg">ارفع صور وفيديوهات الوحدة</h3>
+				<p class="text-sm text-muted-foreground">صيغ PNG, JPG, MP4 (الحد الأقصى 10MB)</p>
+			</div>
+
+			<Button variant="outline" class="relative overflow-hidden mt-2">
+				تصفح الملفات
+				<input
+					type="file"
+					multiple
+					accept="image/*,video/*"
+					class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+					onchange={handleFileSelect} />
+			</Button>
 		</div>
 
-		<Button variant="outline" class="relative overflow-hidden mt-2">
-			تصفح الملفات
-			<input
-				type="file"
-				multiple
-				accept="image/*,video/*"
-				class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-				onchange={handleFileSelect} />
-		</Button>
-	</div>
-
-	<div class="space-y-2 mt-6">
-		<Label class="text-right font-bold">الصور الجديدة المرفوعة</Label>
-		<div class="grid grid-cols-3 gap-4">
-			{#each propertiesForm.media as file, i (i)}
-				{@const isThumbnail = i === propertiesForm.thumbnail}
-				{@render media(isThumbnail, file, i)}
-			{/each}
-		</div>
+		{#if propertiesForm.media.length > 0}
+			<div class="space-y-2 mt-6">
+				<Label class="text-right font-bold">الصور الجديدة المرفوعة</Label>
+				<div class="grid grid-cols-3 gap-4">
+					{#each propertiesForm.media as file, i (i)}
+						{@const src = URL.createObjectURL(file)}
+						{@render media(
+							src,
+							!file.type.startsWith('image/'),
+							propertiesForm.thumbnail === i,
+							() => {
+								propertiesForm.thumbnail = i;
+								propertiesForm.mainExistingMediaId = null;
+							},
+							() => removeFile(i)
+						)}
+					{/each}
+				</div>
+			</div>
+		{/if}
 	</div>
 {/snippet}
 
-{#snippet media(isThumbnail: boolean, file: File, index: number)}
+{#snippet media(
+	src: string,
+	isVideo: boolean,
+	isThumbnail: boolean,
+	onSetMain: () => void,
+	onRemove: () => void,
+	readOnly: boolean = false
+)}
 	<div
 		class="relative group rounded-md border p-2 flex flex-col gap-2 transition-all {isThumbnail
 			? 'border-primary ring-1 ring-primary bg-primary/5'
 			: 'hover:border-muted-foreground/50'}">
-		{#if file.type.startsWith('image/')}
-			<img src={URL.createObjectURL(file)} alt="preview" class="w-full h-24 object-cover rounded-sm border" />
+		{#if !isVideo}
+			<img {src} alt="preview" class="w-full h-24 object-cover rounded-sm border" />
 		{:else}
 			<div class="w-full h-24 bg-muted border flex items-center justify-center rounded-sm">
 				<Video class="w-8 h-8 text-muted-foreground/50" />
@@ -729,28 +952,28 @@
 		{/if}
 
 		<div class="flex items-center justify-between mt-auto pt-1">
-			{#if file.type.startsWith('image/')}
+			{#if readOnly}
+				<span class="text-xs font-medium {isThumbnail ? 'text-primary' : 'text-muted-foreground'}">
+					{isThumbnail ? '★ الرئيسية' : ''}
+				</span>
+			{:else}
 				<button
 					type="button"
 					class="text-xs font-medium transition-colors {isThumbnail
 						? 'text-primary'
 						: 'text-muted-foreground hover:text-foreground'}"
-					onclick={() => {
-						propertiesForm.thumbnail = index;
-					}}>
+					onclick={onSetMain}>
 					{isThumbnail ? '★ الرئيسية' : 'تعيين كرئيسية'}
 				</button>
-			{:else}
-				<span></span>
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					class="h-6 w-6 text-destructive hover:bg-destructive/10"
+					onclick={onRemove}>
+					<Trash2 class="w-3.5 h-3.5" />
+				</Button>
 			{/if}
-			<Button
-				type="button"
-				variant="ghost"
-				size="icon"
-				class="h-6 w-6 text-destructive hover:bg-destructive/10"
-				onclick={() => removeFile(index)}>
-				<Trash2 class="w-3.5 h-3.5" />
-			</Button>
 		</div>
 	</div>
 {/snippet}

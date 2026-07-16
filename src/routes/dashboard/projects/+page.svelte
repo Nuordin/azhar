@@ -18,7 +18,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 
-	import { Plus, SquarePen, Trash2, Upload, Video } from '@lucide/svelte';
+	import { Plus, SquarePen, Trash2, Upload, Video, Eye } from '@lucide/svelte';
 	import { projectForm } from './state.svelte.js';
 	let { data } = $props();
 
@@ -354,6 +354,29 @@
 				<Button
 					variant="ghost"
 					size="icon"
+					title="عرض"
+					onclick={async (e) => {
+						const btn = e.currentTarget as HTMLButtonElement;
+						btn.disabled = true;
+						try {
+							const res = await fetch(`/api/projects/${project.id}`);
+							if (res.ok) {
+								projectForm.openView(await res.json());
+							} else {
+								alert('حدث خطأ أثناء جلب البيانات');
+							}
+						} catch (err) {
+							console.error(err);
+						} finally {
+							btn.disabled = false;
+						}
+					}}>
+					<Eye class="h-4 w-4 text-muted-foreground" />
+				</Button>
+
+				<Button
+					variant="ghost"
+					size="icon"
 					title="تعديل"
 					onclick={async (e) => {
 						const btn = e.currentTarget as HTMLButtonElement;
@@ -414,42 +437,57 @@
 		<Dialog.Content class="sm:max-w-150 dark" interactOutsideBehavior="close">
 			<Dialog.Header>
 				<Dialog.Title class="text-right">
-					{projectForm.projectId ? 'تعديل المشروع' : 'إضافة مشروع جديد'}
+					{projectForm.mode === 'view'
+						? 'تفاصيل المشروع'
+						: projectForm.projectId
+							? 'تعديل المشروع'
+							: 'إضافة مشروع جديد'}
 				</Dialog.Title>
-				<Dialog.Description class="text-right">الخطوة {projectForm.currentStep} من 4</Dialog.Description>
+				{#if projectForm.mode !== 'view'}
+					<Dialog.Description class="text-right">الخطوة {projectForm.currentStep} من 4</Dialog.Description>
+				{/if}
 			</Dialog.Header>
 
-			<div class="py-4 space-y-4" dir="rtl">
-				{#if projectForm.currentStep === 1}
-					{@render firstInformationForm()}
-				{:else if projectForm.currentStep === 2}
-					{@render secondInformationForm()}
-				{:else if projectForm.currentStep === 3}
-					{@render amenityForm()}
-				{:else if projectForm.currentStep === 4}
-					{@render mediaUploadForm()}
-				{/if}
-			</div>
-
-			<Dialog.Footer class="flex justify-between items-center w-full gap-2 mt-4" dir="rtl">
-				<div class="flex grow gap-2">
-					<div class="text-red-400 text-xs">{err_msg}</div>
+			{#if projectForm.mode === 'view'}
+				<div class="py-4 space-y-4" dir="rtl">
+					{@render viewBody()}
 				</div>
-				<div class="flex gap-2">
-					{#if projectForm.currentStep > 1}
-						<Button type="button" variant="outline" onclick={() => projectForm.prevStep()}>السابق</Button>
+				<Dialog.Footer class="flex justify-end items-center w-full gap-2 mt-4" dir="rtl">
+					<Button type="button" variant="ghost" onclick={() => projectForm.closeDialog()}>إغلاق</Button>
+				</Dialog.Footer>
+			{:else}
+				<div class="py-4 space-y-4" dir="rtl">
+					{#if projectForm.currentStep === 1}
+						{@render firstInformationForm()}
+					{:else if projectForm.currentStep === 2}
+						{@render secondInformationForm()}
+					{:else if projectForm.currentStep === 3}
+						{@render amenityForm()}
+					{:else if projectForm.currentStep === 4}
+						{@render mediaUploadForm()}
 					{/if}
-
-					<Button
-						type="button"
-						onsubmit={(e) => e.preventDefault()}
-						onclick={() => (projectForm.currentStep === 4 ? submitForm() : projectForm.nextStep())}
-						disabled={isSubmitting}>
-						{isSubmitting ? 'جاري الحفظ...' : projectForm.currentStep === 4 ? 'حفظ البيانات' : 'التالي'}
-					</Button>
-					<Button type="button" variant="ghost" onclick={() => projectForm.closeDialog()}>إلغاء</Button>
 				</div>
-			</Dialog.Footer>
+
+				<Dialog.Footer class="flex justify-between items-center w-full gap-2 mt-4" dir="rtl">
+					<div class="flex grow gap-2">
+						<div class="text-red-400 text-xs">{err_msg}</div>
+					</div>
+					<div class="flex gap-2">
+						{#if projectForm.currentStep > 1}
+							<Button type="button" variant="outline" onclick={() => projectForm.prevStep()}>السابق</Button>
+						{/if}
+
+						<Button
+							type="button"
+							onsubmit={(e) => e.preventDefault()}
+							onclick={() => (projectForm.currentStep === 4 ? submitForm() : projectForm.nextStep())}
+							disabled={isSubmitting}>
+							{isSubmitting ? 'جاري الحفظ...' : projectForm.currentStep === 4 ? 'حفظ البيانات' : 'التالي'}
+						</Button>
+						<Button type="button" variant="ghost" onclick={() => projectForm.closeDialog()}>إلغاء</Button>
+					</div>
+				</Dialog.Footer>
+			{/if}
 		</Dialog.Content>
 	</Dialog.Root>
 {/snippet}
@@ -754,7 +792,14 @@
 	</div>
 {/snippet}
 
-{#snippet media(src: string, isVideo: boolean, isThumbnail: boolean, onSetMain: () => void, onRemove: () => void)}
+{#snippet media(
+	src: string,
+	isVideo: boolean,
+	isThumbnail: boolean,
+	onSetMain: () => void,
+	onRemove: () => void,
+	readOnly: boolean = false
+)}
 	<div
 		class="relative group rounded-md border p-2 flex flex-col gap-2 transition-all {isThumbnail
 			? 'border-primary ring-1 ring-primary bg-primary/5'
@@ -768,22 +813,124 @@
 		{/if}
 
 		<div class="flex items-center justify-between mt-auto pt-1">
-			<button
-				type="button"
-				class="text-xs font-medium transition-colors {isThumbnail
-					? 'text-primary'
-					: 'text-muted-foreground hover:text-foreground'}"
-				onclick={onSetMain}>
-				{isThumbnail ? '★ الرئيسية' : 'تعيين كرئيسية'}
-			</button>
-			<Button
-				type="button"
-				variant="ghost"
-				size="icon"
-				class="h-6 w-6 text-destructive hover:bg-destructive/10"
-				onclick={onRemove}>
-				<Trash2 class="w-3.5 h-3.5" />
-			</Button>
+			{#if readOnly}
+				<span class="text-xs font-medium {isThumbnail ? 'text-primary' : 'text-muted-foreground'}">
+					{isThumbnail ? '★ الرئيسية' : ''}
+				</span>
+			{:else}
+				<button
+					type="button"
+					class="text-xs font-medium transition-colors {isThumbnail
+						? 'text-primary'
+						: 'text-muted-foreground hover:text-foreground'}"
+					onclick={onSetMain}>
+					{isThumbnail ? '★ الرئيسية' : 'تعيين كرئيسية'}
+				</button>
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					class="h-6 w-6 text-destructive hover:bg-destructive/10"
+					onclick={onRemove}>
+					<Trash2 class="w-3.5 h-3.5" />
+				</Button>
+			{/if}
 		</div>
+	</div>
+{/snippet}
+
+{#snippet viewField(label: string, value: string)}
+	<div class="grid gap-1">
+		<Label class="text-right text-muted-foreground text-xs">{label}</Label>
+		<p class="text-right text-sm">{value || '-'}</p>
+	</div>
+{/snippet}
+
+{#snippet viewBody()}
+	<div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar" dir="rtl">
+		<div class="grid grid-cols-2 gap-4">
+			{@render viewField('اسم المشروع', projectForm.title)}
+			{@render viewField('اسم المطور', projectForm.developerName)}
+			{@render viewField('الموقع', projectForm.locationName)}
+			{@render viewField('نوع التملك', currentOwnershipLabel)}
+			{@render viewField('حالة البناء', currentStatusLabel)}
+			{@render viewField('نسبة الإنجاز', currentPercentageLabel)}
+			{@render viewField('السعر المبدئي', formatCurrency(projectForm.startingPrice ?? null))}
+			{@render viewField('تاريخ التسليم', projectForm.deliveryDate)}
+			<div class="grid gap-1">
+				<Label class="text-right text-muted-foreground text-xs">حالة النشر</Label>
+				<Badge variant={projectForm.isPublished ? 'default' : 'outline'} class="w-fit">
+					{projectForm.isPublished ? 'منشور' : 'غير منشور'}
+				</Badge>
+			</div>
+		</div>
+
+		<div class="grid gap-1">
+			<Label class="text-right text-muted-foreground text-xs">وصف المشروع</Label>
+			<p class="text-right text-sm whitespace-pre-wrap">{projectForm.description || '-'}</p>
+		</div>
+
+		<Separator />
+		<div>
+			<Label class="text-right font-bold">المرافق والخدمات</Label>
+			{#if projectForm.amenities.length > 0}
+				<div class="grid grid-cols-2 gap-3 mt-3">
+					{#each projectForm.amenities as amenity, i (i)}
+						<div class="flex items-center gap-2 bg-muted/30 p-2 rounded-md border">
+							<Icons iconName={amenity.icon} />
+							<span class="text-sm">{amenity.title}</span>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground text-center py-2">لا توجد مرافق.</p>
+			{/if}
+		</div>
+
+		<Separator />
+		<div>
+			<Label class="text-right font-bold">خطط الدفع</Label>
+			{#if projectForm.paymentPlans.length > 0}
+				<div class="space-y-2 mt-3">
+					{#each projectForm.paymentPlans as plan, i (i)}
+						<div class="bg-muted/30 p-3 rounded-md border">
+							<p class="text-right font-medium text-sm">{plan.title}</p>
+							<p class="text-right text-sm text-muted-foreground">{plan.description}</p>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground text-center py-2">لا توجد خطط دفع.</p>
+			{/if}
+		</div>
+
+		<Separator />
+		<div>
+			<Label class="text-right font-bold">تفاصيل إضافية</Label>
+			{#if projectForm.details.length > 0}
+				<div class="space-y-2 mt-3">
+					{#each projectForm.details as detail, i (i)}
+						<div class="bg-muted/30 p-3 rounded-md border">
+							<p class="text-right font-medium text-sm">{detail.title}</p>
+							<p class="text-right text-sm text-muted-foreground">{detail.description}</p>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground text-center py-2">لا توجد تفاصيل إضافية.</p>
+			{/if}
+		</div>
+
+		{#if projectForm.existingMedia.length > 0}
+			<Separator />
+			<div class="space-y-2">
+				<Label class="text-right font-bold">الوسائط</Label>
+				<div class="grid grid-cols-3 gap-4">
+					{#each projectForm.existingMedia as file (file.id)}
+						{@render media(file.url, file.type === 'video', projectForm.mainExistingMediaId === file.id, () => {}, () => {}, true)}
+					{/each}
+				</div>
+			</div>
+		{/if}
 	</div>
 {/snippet}

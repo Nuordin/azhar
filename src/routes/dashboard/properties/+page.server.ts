@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '$lib/server/db';
 import { units, unitTranslations, projects, projectTranslations, media } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql, inArray } from 'drizzle-orm';
 import fs from 'fs/promises';
+import crypto from 'crypto';
 
 import type { PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
@@ -127,6 +128,7 @@ export const actions = {
 					area: Number(area),
 					bedrooms: Number(bedroom_count),
 					bathrooms: Number(bathroom_count),
+					deliveryDate: delivery_date ? new Date(delivery_date as string) : null,
 					isPublished: is_published ? true : false
 				})
 				.returning({ id: units.id });
@@ -140,6 +142,7 @@ export const actions = {
 				description: description as string,
 				locationName: location as string,
 				amenities: amenities, // Drizzle handles the JSON stringification based on your schema
+				paymentPlans: payment_plans,
 				details: details
 			});
 
@@ -174,6 +177,160 @@ export const actions = {
 		} catch (error) {
 			console.error(error);
 			return fail(500, { message: 'حدث خطأ أثناء إضافة الوحدة' });
+		}
+	},
+	updateUnit: async ({ request }) => {
+		const formData = await request.formData();
+		const unitId = Number(formData.get('unit_id'));
+
+		if (!unitId) return fail(400, { message: 'معرف الوحدة غير صالح' });
+
+		let parent_id: number | null = Number(formData.get('parent_id')) || null;
+		const title = formData.get('name') || null;
+		const developer = formData.get('developer') || null;
+		const unit_type = formData.get('unit_type') || null;
+		const unit_state = formData.get('unit_status') || null;
+		const category_type = formData.get('category_type') || null;
+		const offer_type = formData.get('offer_type') || null;
+		const description = formData.get('description') || null;
+		const location = formData.get('location') || null;
+		const price = formData.get('price') || null;
+		const ownership_type = formData.get('ownership_type') || null;
+		const delivery_date = formData.get('delivery_date') || null;
+		const completion_progress = formData.get('completion_progress') || null;
+		const construction_status = formData.get('construction_status') || null;
+		const bedroom_count = formData.get('bedroom_count') || null;
+		const bathroom_count = formData.get('bathroom_count') || null;
+		const area = formData.get('area') || null;
+		const amenities = JSON.parse((formData.get('amenities') as string) || '[]');
+		const payment_plans = JSON.parse((formData.get('payment_plans') as string) || '[]');
+		const details = JSON.parse((formData.get('details') as string) || '[]');
+		const is_published = formData.get('is_published') === 'true';
+
+		if (parent_id === 0) parent_id = null;
+		if (!title) return fail(422, { message: 'يجب الا يكون حقل الاسم فارغا' });
+		if (!developer) return fail(422, { message: 'يجب الا يكون حقل المطور فارغا' });
+		if (!unit_type) return fail(422, { message: 'يجب الا يكون حقل نوع الوحدة فارغا' });
+		if (!construction_status) return fail(422, { message: 'يجب الا يكون حقل حالة البناء فارغا' });
+		if (!category_type) return fail(422, { message: 'يجب الا يكون حقل تصنيف اوحدة فارغا' });
+		if (!offer_type) return fail(422, { message: 'يجب الا يكون حقل نوع العرض فارغا' });
+		if (!description) return fail(422, { message: 'يجب الا يكون الوصف فارغا' });
+		if (!location) return fail(422, { message: 'يجب الا يكون حقل الموقع فارغا' });
+		if (!price) return fail(422, { message: 'يجب الا يكون حقل السعر فارغا' });
+		if (!ownership_type) return fail(422, { message: 'يجب الا يكون حقل نوع التملك فارغا' });
+		if (!unit_state) return fail(422, { message: 'يجب الا يكون حقل حالة الوحدة فارغا' });
+		if (!completion_progress) return fail(422, { message: 'يجب الا يكون حقل نسبة الإنجاز فارغا' });
+		if (!delivery_date) return fail(422, { message: 'يجب الا يكون حقل تاريخ التسليم فارغا' });
+		if (!bedroom_count) return fail(422, { message: 'يجب الا يكون حقل عدد غرف النوم فارغا' });
+		if (!bathroom_count) return fail(422, { message: 'يجب الا يكون حقل عدد الحمامات فارغا' });
+		if (!area) return fail(422, { message: 'يجب الا يكون حقل المساحة فارغا' });
+		if (isNaN(Number(area))) return fail(422, { message: 'يجب أن يكون حقل المساحة رقماً' });
+		if (isNaN(Number(price))) return fail(422, { message: 'يجب أن يكون حقل السعر رقماً' });
+		if (isNaN(Number(bedroom_count))) return fail(422, { message: 'يجب أن يكون حقل عدد غرف النوم رقماً' });
+		if (isNaN(Number(bathroom_count))) return fail(422, { message: 'يجب أن يكون حقل عدد الحمامات رقماً' });
+
+		try {
+			await db
+				.update(units)
+				.set({
+					projectId: parent_id,
+					type: unit_type as any,
+					status: unit_state as any,
+					category: category_type as any,
+					completionPercentage: completion_progress as any,
+					constructionStatus: construction_status as any,
+					ownershipType: ownership_type as any,
+					offerType: offer_type as any,
+					price: Number(price),
+					area: Number(area),
+					bedrooms: Number(bedroom_count),
+					bathrooms: Number(bathroom_count),
+					deliveryDate: delivery_date ? new Date(delivery_date as string) : null,
+					isPublished: is_published,
+					updatedAt: new Date()
+				})
+				.where(eq(units.id, unitId));
+
+			await db
+				.update(unitTranslations)
+				.set({
+					title: title as string,
+					developer: developer as string,
+					description: description as string,
+					locationName: location as string,
+					amenities: amenities,
+					paymentPlans: payment_plans,
+					details: details
+				})
+				.where(eq(unitTranslations.unitId, unitId));
+
+			const deletedMediaIds = JSON.parse((formData.get('deletedMediaIds') as string) || '[]');
+			if (deletedMediaIds.length > 0) {
+				const mediaToDelete = await db
+					.select({ url: media.url })
+					.from(media)
+					.where(inArray(media.id, deletedMediaIds));
+				const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
+
+				for (const file of mediaToDelete) {
+					try {
+						const fileName = file.url.replace('/uploads/', '');
+						await fs.unlink(path.join(uploadDir, fileName));
+					} catch (e) {
+						console.error(`لم يتم العثور على الملف لحذفه: ${file.url}`, e);
+					}
+				}
+				await db.delete(media).where(inArray(media.id, deletedMediaIds));
+			}
+
+			await db.update(media).set({ isMain: false }).where(eq(media.unitId, unitId));
+
+			const mainExistingMediaId = formData.get('mainExistingMediaId');
+			if (mainExistingMediaId && mainExistingMediaId !== 'null') {
+				await db
+					.update(media)
+					.set({ isMain: true })
+					.where(eq(media.id, Number(mainExistingMediaId)));
+			}
+
+			const files = formData.getAll('media') as File[];
+			const thumbnail = Number(formData.get('thumbnail'));
+			const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
+			await fs.mkdir(uploadDir, { recursive: true });
+
+			for (let i = 0; i < files.length; i++) {
+				const file = files[i];
+				if (file.size === 0) continue;
+
+				const fileExt = file.name.split('.').pop();
+				const fileName = `${crypto.randomUUID()}.${fileExt}`;
+				const filePath = path.join(uploadDir, fileName);
+
+				const arrayBuffer = await file.arrayBuffer();
+				await fs.writeFile(filePath, Buffer.from(arrayBuffer));
+
+				const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+				const isMain = i === thumbnail && (!mainExistingMediaId || mainExistingMediaId === 'null');
+
+				const maxOrderResult = await db
+					.select({ maxOrder: sql<number>`MAX(${media.sortOrder})` })
+					.from(media)
+					.where(eq(media.unitId, unitId));
+				const nextOrder = (maxOrderResult[0]?.maxOrder || 0) + i + 1;
+
+				await db.insert(media).values({
+					unitId: unitId,
+					url: `/uploads/${fileName}`,
+					type: fileType,
+					isMain: isMain,
+					sortOrder: nextOrder
+				});
+			}
+
+			return { type: 'success', message: 'تم تحديث الوحدة بنجاح' };
+		} catch (error) {
+			console.error('Error updating unit:', error);
+			return fail(500, { message: 'حدث خطأ داخلي أثناء تحديث الوحدة' });
 		}
 	},
 	deleteUnit: async ({ request }) => {

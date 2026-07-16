@@ -3,6 +3,7 @@ import { SvelteDate } from 'svelte/reactivity';
 export class ProjectFormState {
 	isOpen = $state(false);
 	currentStep = $state(1);
+	mode = $state<'edit' | 'view'>('edit');
 
 	projectId = $state<number | null>(null);
 	parentId = $state<string>('none');
@@ -31,6 +32,14 @@ export class ProjectFormState {
 	mainExistingMediaId = $state<number | null>(null);
 
 	openDialog() {
+		this.mode = 'edit';
+		this.isOpen = true;
+		this.currentStep = 1;
+	}
+
+	openView(data: unknown) {
+		this.populate(data);
+		this.mode = 'view';
 		this.isOpen = true;
 		this.currentStep = 1;
 	}
@@ -86,6 +95,7 @@ export class ProjectFormState {
 
 	resetForm() {
 		this.projectId = null;
+		this.mode = 'edit';
 		this.currentStep = 1;
 		this.parentId = 'none';
 		this.title = '';

@@ -204,6 +204,7 @@ export const units = sqliteTable(
 		area: real('area'),
 		bedrooms: integer('bedrooms'),
 		bathrooms: integer('bathrooms'),
+		deliveryDate: integer('delivery_date', { mode: 'timestamp_ms' }),
 		isPublished: integer('is_published', { mode: 'boolean' }).default(true).notNull(),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' })
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
@@ -229,6 +230,7 @@ export const unitTranslations = sqliteTable(
 		description: text('description').notNull(),
 		locationName: text('location_name').notNull(),
 		amenities: text('amenities', { mode: 'json' }),
+		paymentPlans: text('payment_plans', { mode: 'json' }),
 		details: text('details', { mode: 'json' })
 	},
 	(table) => [
