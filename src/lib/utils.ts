@@ -12,6 +12,15 @@ export type WithoutChildren<T> = T extends { children?: any } ? Omit<T, 'childre
 export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>;
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & { ref?: U | null };
 
+export const formatCurrency = (
+	amount: number | null,
+	locale: string = 'ar-OM',
+	style: Intl.NumberFormatOptions = { style: 'currency', currency: 'OMR', maximumFractionDigits: 0 }
+) => {
+	if (!amount) return '-';
+	return new Intl.NumberFormat(locale, style).format(amount);
+};
+
 export const unitTypes = [
 	'apartment',
 	'standalone_villa',

@@ -42,7 +42,7 @@
 						<a
 							href={link.href}
 							onclick={() => (open = false)}
-							class="flex items-center px-4 py-3 text-lg rounded-xl bg-secondary-700/80 text-secondary-100 transition-all duration-200">
+							class="flex items-center px-4 py-3 text-lg rounded-xl text-secondary-700 hover:bg-slate-800 hover:text-white transition-all duration-200">
 							{link.name}
 						</a>
 					{:else}
