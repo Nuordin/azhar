@@ -13,65 +13,107 @@ export const load: PageServerLoad = async ({ url }) => {
 	const page = Number(url.searchParams.get('page')) || 1; // قراءة رقم الصفحة من الرابط، والافتراضي 1
 	const offset = (page - 1) * limit; // حساب نقطة البداية لجلب البيانات
 
-	const totalCountResult = await db.select({ count: sql<number>`count(*)` }).from(projects);
+	try {
+		const totalCountResult = await db.select({ count: sql<number>`count(*)` }).from(projects);
 
-	const totalCount = totalCountResult[0].count;
-	const totalPages = Math.ceil(totalCount / limit);
+		const totalCount = totalCountResult[0].count;
+		const totalPages = Math.ceil(totalCount / limit);
 
-	const parentProjectsList = await db
-		.select({
-			id: projects.id,
-			title: projectTranslations.title
-		})
-		.from(projects)
-		.leftJoin(projectTranslations, eq(projects.id, projectTranslations.projectId))
-		.where(eq(projectTranslations.locale, 'ar'));
+		const parentProjectsList = await db
+			.select({
+				id: projects.id,
+				title: projectTranslations.title
+			})
+			.from(projects)
+			.leftJoin(projectTranslations, eq(projects.id, projectTranslations.projectId))
+			.where(eq(projectTranslations.locale, 'ar'));
 
-	const projectsList = await db
-		.select({
-			id: projects.id,
-			title: projectTranslations.title,
-			developerName: projectTranslations.developerName,
-			constructionStatus: projects.constructionStatus,
-			completionPercentage: projects.completionPercentage,
-			startingPrice: projects.startingPrice,
-			isPublished: projects.isPublished
-		})
-		.from(projects)
-		.leftJoin(projectTranslations, eq(projects.id, projectTranslations.projectId))
-		.where(eq(projectTranslations.locale, 'ar'))
-		.limit(limit)
-		.offset(offset);
+		const projectsList = await db
+			.select({
+				id: projects.id,
+				title: projectTranslations.title,
+				developerName: projectTranslations.developerName,
+				constructionStatus: projects.constructionStatus,
+				completionPercentage: projects.completionPercentage,
+				startingPrice: projects.startingPrice,
+				isPublished: projects.isPublished
+			})
+			.from(projects)
+			.leftJoin(projectTranslations, eq(projects.id, projectTranslations.projectId))
+			.where(eq(projectTranslations.locale, 'ar'))
+			.limit(limit)
+			.offset(offset);
 
-	return {
-		projects: projectsList,
-		parentProjects: parentProjectsList,
-		pagination: {
-			totalCount,
-			totalPages,
-			currentPage: page,
-			limit
-		}
-	};
+		return {
+			projects: projectsList,
+			parentProjects: parentProjectsList,
+			pagination: {
+				totalCount,
+				totalPages,
+				currentPage: page,
+				limit
+			}
+		};
+	} catch (error) {
+		console.error(error);
+		return {
+			projects: [],
+			parentProjects: [],
+			pagination: {
+				totalCount: 0,
+				totalPages: 0,
+				currentPage: page,
+				limit
+			},
+			error: 'Failed to load projects'
+		};
+	}
 };
 
 export const actions = {
 	createProject: async ({ request }) => {
+		const formData = await request.formData();
+		const parentIdRaw = formData.get('parentId') as string;
+		const parentId = parentIdRaw && parentIdRaw !== 'none' ? Number(parentIdRaw) : null;
+
+		const ownershipType = formData.get('ownershipType') as 'omani_only' | 'gcc_only' | 'all_nationalities';
+		const constructionStatus = formData.get('constructionStatus') as 'off_plan' | 'under_construction' | 'ready';
+		const completionPercentage = (formData.get('completionPercentage') as '25' | '50' | '75' | '100') || '0';
+		const startingPriceRaw = formData.get('startingPrice') as string;
+		const startingPrice = startingPriceRaw ? Number(startingPriceRaw) : null;
+
+		const deliveryDateStr = formData.get('deliveryDate') as string;
+		const deliveryDate = deliveryDateStr ? new Date(deliveryDateStr) : null;
+
+		const isPublished = formData.get('isPublished') === 'true';
+
+		const title = formData.get('title') as string;
+		const developerName = formData.get('developerName') as string;
+		const locationName = formData.get('locationName') as string;
+		const description = formData.get('description') as string;
+
+		const amenities = JSON.parse((formData.get('amenities') as string) || '[]');
+		const paymentPlans = JSON.parse((formData.get('paymentPlans') as string) || '[]');
+		const details = JSON.parse((formData.get('details') as string) || '[]');
+
+		const files = formData.getAll('mediaFiles') as File[];
+		const thumbnailIndex = Number(formData.get('thumbnailIndex') || 0);
+
+		// التحقق من صحة البيانات
+		if (!title) return fail(422, { message: 'يجب الا يكون حقل اسم المشروع فارغا' });
+		if (!developerName) return fail(422, { message: 'يجب الا يكون حقل اسم المطور فارغا' });
+		if (!locationName) return fail(422, { message: 'يجب الا يكون حقل الموقع فارغا' });
+		if (!description) return fail(422, { message: 'يجب الا يكون حقل الوصف فارغا' });
+		if (!ownershipType) return fail(422, { message: 'يجب الا يكون حقل نوع التملك فارغا' });
+		if (!constructionStatus) return fail(422, { message: 'يجب الا يكون حقل حالة البناء فارغا' });
+		if (!completionPercentage) return fail(422, { message: 'يجب الا يكون حقل نسبة الإنجاز فارغا' });
+		if (!deliveryDate) return fail(422, { message: 'يجب الا يكون حقل تاريخ التسليم فارغا' });
+		if (startingPriceRaw && isNaN(Number(startingPriceRaw)))
+			return fail(422, { message: 'يجب أن يكون حقل السعر المبدئي رقماً' });
+		if (files.filter((file) => file.size > 0).length < 1)
+			return fail(422, { message: 'يجب رفع صورة واحدة على الأقل' });
+
 		try {
-			const formData = await request.formData();
-			const parentIdRaw = formData.get('parentId') as string;
-			const parentId = parentIdRaw && parentIdRaw !== 'none' ? Number(parentIdRaw) : null;
-
-			const ownershipType = formData.get('ownershipType') as 'omani_only' | 'gcc_only' | 'all_nationalities';
-			const constructionStatus = formData.get('constructionStatus') as 'off_plan' | 'under_construction' | 'ready';
-			const completionPercentage = (formData.get('completionPercentage') as '25' | '50' | '75' | '100') || '0';
-			const startingPrice = formData.get('startingPrice') ? Number(formData.get('startingPrice')) : null;
-
-			const deliveryDateStr = formData.get('deliveryDate') as string;
-			const deliveryDate = deliveryDateStr ? new Date(deliveryDateStr) : null;
-
-			const isPublished = formData.get('isPublished') === 'true';
-
 			const [newProject] = await db
 				.insert(projects)
 				.values({
@@ -88,14 +130,6 @@ export const actions = {
 				.returning({ id: projects.id });
 
 			const projectId = newProject.id;
-			const title = formData.get('title') as string;
-			const developerName = formData.get('developerName') as string;
-			const locationName = formData.get('locationName') as string;
-			const description = formData.get('description') as string;
-
-			const amenities = JSON.parse((formData.get('amenities') as string) || '[]');
-			const paymentPlans = JSON.parse((formData.get('paymentPlans') as string) || '[]');
-			const details = JSON.parse((formData.get('details') as string) || '[]');
 
 			await db.insert(projectTranslations).values({
 				projectId: projectId,
@@ -109,8 +143,6 @@ export const actions = {
 				details
 			});
 
-			const files = formData.getAll('mediaFiles') as File[];
-			const thumbnailIndex = Number(formData.get('thumbnailIndex') || 0);
 			const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
 
 			await fs.mkdir(uploadDir, { recursive: true });
@@ -180,22 +212,43 @@ export const actions = {
 		}
 	},
 	updateProject: async ({ request }) => {
+		const formData = await request.formData();
+		const projectId = Number(formData.get('projectId'));
+
+		if (!projectId) return fail(400, { message: 'المعرف غير صالح' });
+
+		const parentIdRaw = formData.get('parentId') as string;
+		const parentId = parentIdRaw && parentIdRaw !== 'none' ? Number(parentIdRaw) : null;
+		const ownershipType = formData.get('ownershipType') as any;
+		const constructionStatus = formData.get('constructionStatus') as any;
+		const completionPercentage = (formData.get('completionPercentage') as any) || '0';
+		const startingPriceRaw = formData.get('startingPrice') as string;
+		const startingPrice = startingPriceRaw ? Number(startingPriceRaw) : null;
+		const deliveryDateStr = formData.get('deliveryDate') as string;
+		const deliveryDate = deliveryDateStr ? new Date(deliveryDateStr) : null;
+		const isPublished = formData.get('isPublished') === 'true';
+
+		const title = formData.get('title') as string;
+		const developerName = formData.get('developerName') as string;
+		const locationName = formData.get('locationName') as string;
+		const description = formData.get('description') as string;
+		const amenities = JSON.parse((formData.get('amenities') as string) || '[]');
+		const paymentPlans = JSON.parse((formData.get('paymentPlans') as string) || '[]');
+		const details = JSON.parse((formData.get('details') as string) || '[]');
+
+		// التحقق من صحة البيانات
+		if (!title) return fail(422, { message: 'يجب الا يكون حقل اسم المشروع فارغا' });
+		if (!developerName) return fail(422, { message: 'يجب الا يكون حقل اسم المطور فارغا' });
+		if (!locationName) return fail(422, { message: 'يجب الا يكون حقل الموقع فارغا' });
+		if (!description) return fail(422, { message: 'يجب الا يكون حقل الوصف فارغا' });
+		if (!ownershipType) return fail(422, { message: 'يجب الا يكون حقل نوع التملك فارغا' });
+		if (!constructionStatus) return fail(422, { message: 'يجب الا يكون حقل حالة البناء فارغا' });
+		if (!completionPercentage) return fail(422, { message: 'يجب الا يكون حقل نسبة الإنجاز فارغا' });
+		if (!deliveryDate) return fail(422, { message: 'يجب الا يكون حقل تاريخ التسليم فارغا' });
+		if (startingPriceRaw && isNaN(Number(startingPriceRaw)))
+			return fail(422, { message: 'يجب أن يكون حقل السعر المبدئي رقماً' });
+
 		try {
-			const formData = await request.formData();
-			const projectId = Number(formData.get('projectId'));
-
-			if (!projectId) return fail(400, { message: 'المعرف غير صالح' });
-
-			const parentIdRaw = formData.get('parentId') as string;
-			const parentId = parentIdRaw && parentIdRaw !== 'none' ? Number(parentIdRaw) : null;
-			const ownershipType = formData.get('ownershipType') as any;
-			const constructionStatus = formData.get('constructionStatus') as any;
-			const completionPercentage = (formData.get('completionPercentage') as any) || '0';
-			const startingPrice = formData.get('startingPrice') ? Number(formData.get('startingPrice')) : null;
-			const deliveryDateStr = formData.get('deliveryDate') as string;
-			const deliveryDate = deliveryDateStr ? new Date(deliveryDateStr) : null;
-			const isPublished = formData.get('isPublished') === 'true';
-
 			await db
 				.update(projects)
 				.set({
@@ -209,14 +262,6 @@ export const actions = {
 					updatedAt: new Date()
 				})
 				.where(eq(projects.id, projectId));
-
-			const title = formData.get('title') as string;
-			const developerName = formData.get('developerName') as string;
-			const locationName = formData.get('locationName') as string;
-			const description = formData.get('description') as string;
-			const amenities = JSON.parse((formData.get('amenities') as string) || '[]');
-			const paymentPlans = JSON.parse((formData.get('paymentPlans') as string) || '[]');
-			const details = JSON.parse((formData.get('details') as string) || '[]');
 
 			await db
 				.update(projectTranslations)
