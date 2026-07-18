@@ -37,9 +37,9 @@
 </script>
 
 <form
-	class="w-full max-w-96 md:max-w-3xl lg:max-w-5xl px-8 py-4 md:py-6 border border-gray-400/20 shadow mt-8 rounded-2xl mx-auto justify-center items-center">
-	<h1 class="w-full text-center text-2xl md:text-3xl font-black mb-4">ابحث عن مشاريعنا</h1>
-	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+	class="w-96 px-8 py-4 border border-gray-400/20 shadow mt-8 rounded-2xl mx-auto justify-center items-center">
+	<h1 class="w-full text-center text-2xl font-black mb-4">ابحث عن مشاريعنا</h1>
+	<div class="grid grid-cols-1 gap-8">
 		{@render select('location', searchFormData.location)}
 		{@render select('realestateType', searchFormData.realestateType)}
 		{@render select('unitType', searchFormData.unitType)}
@@ -47,7 +47,7 @@
 		{@render select('roomsCount', searchFormData.roomsCount)}
 	</div>
 	<button
-		class="w-full lg:max-w-md lg:mx-auto px-10 mt-6 flex flex-row-reverse items-center justify-center gap-2 py-2 md:py-3 bg-primary text-secondary-100 rounded-xl font-aljazeera font-black text-xl">
+		class="w-full px-10 mt-4 flex flex-row-reverse items-center justify-center gap-2 py-2 bg-primary text-secondary-100 rounded-xl font-aljazeera font-black text-xl">
 		<!-- <SearchIcon /> -->
 		{searchFormData.search}
 	</button>

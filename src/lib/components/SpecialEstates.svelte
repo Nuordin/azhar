@@ -8,7 +8,7 @@
 </script>
 
 <div class="px-8 mt-16">
-	<h1 class="text-4xl md:text-5xl font-bold text-secondary-600 text-center w-full mb-4">
+	<h1 class="text-4xl font-bold text-secondary-600 text-center w-full mb-4">
 		{$_('specialEstates.title')}
 	</h1>
 	<p class="text-2xl max-w-2xl mb-8 text-center">{$_('specialEstates.description')}</p>
