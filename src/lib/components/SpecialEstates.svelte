@@ -21,7 +21,7 @@
 </script>
 
 <div class="px-4 md:px-10 lg:px-16 mt-16" dir="rtl">
-	<h1 class="text-4xl font-bold text-secondary-600 text-center w-full mb-4">
+	<h1 class="text-4xl md:text-5xl font-bold text-secondary-600 text-center w-full mb-4">
 		{$_('specialEstates.title')}
 	</h1>
 	<p class="text-2xl max-w-2xl mx-auto mb-8 text-center">{$_('specialEstates.description')}</p>
