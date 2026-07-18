@@ -5,13 +5,17 @@
 	import { Gem } from '@lucide/svelte';
 </script>
 
-<div class="px-8 pt-24 flex flex-col gap-8" id="about">
-	<div class="flex flex-col justify-between items-start">
-		<h1 class="text-4xl font-bold text-secondary-600 text-center w-full mb-4">
+<div
+	class="px-8 md:px-10 lg:px-16 pt-24 flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-16 max-w-7xl mx-auto"
+	id="about">
+	<div class="flex flex-col justify-between items-start lg:flex-1">
+		<h1 class="text-4xl md:text-5xl font-bold text-secondary-600 text-center lg:text-right w-full mb-4">
 			{$_('about_us.title')}
 		</h1>
-		<p class="text-2xl max-w-2xl mb-8 text-center">{$_('about_us.description')}</p>
-		<div class="grid grid-cols-2 gap-8 w-fit mx-auto">
+		<p class="text-2xl max-w-2xl mb-8 text-center lg:text-right lg:mx-0 mx-auto">
+			{$_('about_us.description')}
+		</p>
+		<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-8 w-full max-w-lg lg:max-w-none mx-auto lg:mx-0">
 			{@render achievement(
 				$_('about_us.achievements.a1') as unknown as { number: string; title: string }
 			)}
@@ -26,13 +30,13 @@
 			)}
 		</div>
 	</div>
-	<div class="flex justify-center items-center overflow-visible">
+	<div class="flex justify-center items-center overflow-visible lg:flex-1">
 		<div class="grid grid-cols-2 gap-8 justify-center items-center justify-items-center">
 			<img
 				src={white_image}
 				alt="white building"
-				class="object-cover h-86 aspect-1/2 rounded-4xl shadow-2xl border border-secondary-700/20" />
-			<div class="grid grid-rows-2 gap-4 h-86 aspect-1/2">
+				class="object-cover h-86 lg:h-[26rem] aspect-1/2 rounded-4xl shadow-2xl border border-secondary-700/20" />
+			<div class="grid grid-rows-2 gap-4 h-86 lg:h-[26rem] aspect-1/2">
 				<img
 					src={black_image}
 					alt="black building"
