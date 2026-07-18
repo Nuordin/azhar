@@ -53,7 +53,7 @@
 		</div>
 	</div>
 </div>
-
+</div>
 {#snippet achievement(achievement: { number: string; title: string })}
 	<div
 		class="flex flex-col items-center justify-center gap-4 p-4 shadow-md rounded-2xl border-gray-400/20 border text-center">
