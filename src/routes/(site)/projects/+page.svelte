@@ -1,13 +1,21 @@
 <script lang="ts">
 	import { Select } from 'bits-ui';
-	import { Search, ChevronDown, Check, X } from '@lucide/svelte';
+	import { Search, ChevronDown, Check, X, SlidersHorizontal } from '@lucide/svelte';
+	import { fly, fade } from 'svelte/transition';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
+	import i1 from '$lib/assets/tmp/1.avif';
+	import i2 from '$lib/assets/tmp/2.avif';
+	import i3 from '$lib/assets/tmp/3.avif';
 
 	let { data } = $props();
 
-	// خيارات الفلاتر
+	// صور مؤقتة تتكرر على المشاريع
+	const gallery = [i1, i2, i3];
+	let projects = $derived(data.projects.map((p, i) => ({ ...p, image: gallery[i % gallery.length] })));
+
+	// خيارات الفلاتر — نستخدم "all" بدلاً من قيمة فارغة لأن bits-ui يعتبر السلسلة الفارغة "بدون اختيار"
 	const cityOptions = [
-		{ value: '', label: 'كل المدن' },
+		{ value: 'all', label: 'كل المدن' },
 		{ value: 'مسقط', label: 'مسقط' },
 		{ value: 'صلالة', label: 'صلالة' },
 		{ value: 'صحار', label: 'صحار' },
@@ -17,14 +25,14 @@
 		{ value: 'البريمي', label: 'البريمي' }
 	];
 	const typeOptions = [
-		{ value: '', label: 'كل الأنواع' },
+		{ value: 'all', label: 'كل الأنواع' },
 		{ value: 'residential', label: 'سكني' },
 		{ value: 'commercial', label: 'تجاري' },
 		{ value: 'mixed', label: 'مختلط' },
 		{ value: 'land', label: 'أرض' }
 	];
 	const unitTypeOptions = [
-		{ value: '', label: 'كل الوحدات' },
+		{ value: 'all', label: 'كل الوحدات' },
 		{ value: 'villa', label: 'فيلا' },
 		{ value: 'apartment', label: 'شقة' },
 		{ value: 'townhouse', label: 'تاون هاوس' },
@@ -32,57 +40,53 @@
 		{ value: 'land', label: 'أرض' }
 	];
 	const statusOptions = [
-		{ value: '', label: 'كل الحالات' },
+		{ value: 'all', label: 'كل الحالات' },
 		{ value: 'off_plan', label: 'على المخطط' },
 		{ value: 'under_construction', label: 'قيد الإنشاء' },
 		{ value: 'ready', label: 'جاهز' }
 	];
 	const priceOptions = [
-		{ value: '', label: 'كل الأسعار' },
+		{ value: 'all', label: 'كل الأسعار' },
 		{ value: '0-40000', label: 'أقل من 40 ألف' },
 		{ value: '40000-80000', label: '40 - 80 ألف' },
 		{ value: '80000-120000', label: '80 - 120 ألف' },
 		{ value: '120000-', label: 'أكثر من 120 ألف' }
 	];
 	const sortOptions = [
-		{ value: '', label: 'الأحدث' },
+		{ value: 'all', label: 'الأحدث' },
 		{ value: 'price_asc', label: 'السعر: الأقل أولاً' },
 		{ value: 'price_desc', label: 'السعر: الأعلى أولاً' },
 		{ value: 'delivery', label: 'أقرب تسليم' }
 	];
 
 	// حالة الفلاتر
-	let search = $state('');
-	let city = $state('');
-	let type = $state('');
-	let unitType = $state('');
-	let status = $state('');
-	let priceRange = $state('');
-	let sort = $state('');
+	let showFilters = $state(false);
+	let city = $state('all');
+	let type = $state('all');
+	let unitType = $state('all');
+	let status = $state('all');
+	let priceRange = $state('all');
+	let sort = $state('all');
 
-	let activeCount = $derived(
-		[city, type, unitType, status, priceRange].filter(Boolean).length + (search.trim() ? 1 : 0)
-	);
+	let activeCount = $derived([city, type, unitType, status, priceRange].filter((v) => v !== 'all').length);
 
 	function resetFilters() {
-		search = '';
-		city = '';
-		type = '';
-		unitType = '';
-		status = '';
-		priceRange = '';
-		sort = '';
+		city = 'all';
+		type = 'all';
+		unitType = 'all';
+		status = 'all';
+		priceRange = 'all';
+		sort = 'all';
 	}
 
 	let filtered = $derived.by(() => {
-		let list = data.projects.filter((p) => {
-			const q = search.trim();
-			if (q && !`${p.title} ${p.developer} ${p.city}`.includes(q)) return false;
-			if (city && p.city !== city) return false;
-			if (type && p.type !== type) return false;
-			if (unitType && p.unitType !== unitType) return false;
-			if (status && p.constructionStatus !== status) return false;
-			if (priceRange) {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		let list = projects.filter((p: any) => {
+			if (city !== 'all' && p.city !== city) return false;
+			if (type !== 'all' && p.type !== type) return false;
+			if (unitType !== 'all' && p.unitType !== unitType) return false;
+			if (status !== 'all' && p.constructionStatus !== status) return false;
+			if (priceRange !== 'all') {
 				const [min, max] = priceRange.split('-').map(Number);
 				if (p.startingPrice < min) return false;
 				if (max && p.startingPrice > max) return false;
@@ -96,7 +100,7 @@
 	});
 </script>
 
-<div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-10 lg:px-16 py-10">
+<div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-10 lg:px-16 pt-10 pb-28">
 	<!-- الترويسة -->
 	<header class="max-w-3xl mx-auto text-center mb-10">
 		<h1 class="text-4xl md:text-5xl font-black text-secondary-600 mb-3">مشاريعنا العقارية</h1>
@@ -105,40 +109,67 @@
 		</p>
 	</header>
 
-	<!-- شريط الفلاتر -->
-	<div class="sticky top-4 z-20 bg-white/80 backdrop-blur border border-secondary-600/15 shadow-md rounded-2xl p-4 md:p-5 mb-8">
-		<div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-			<!-- البحث -->
-			<div class="relative lg:col-span-2">
-				<Search class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400" />
-				<input
-					type="text"
-					bind:value={search}
-					placeholder="ابحث باسم المشروع أو المطوّر أو المدينة..."
-					class="w-full h-11 rounded-xl border border-secondary-600/20 bg-secondary-100/60 pr-10 pl-4 text-secondary-700 placeholder:text-secondary-400 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+	<!-- زر الفلاتر العائم أسفل الشاشة -->
+	<button
+		onclick={() => (showFilters = true)}
+		class="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 h-12 px-6 rounded-full bg-primary text-white font-black shadow-lg shadow-primary/30 hover:bg-primary-400 hover:shadow-xl transition-all">
+		<SlidersHorizontal class="w-5 h-5" />
+		تصفية المشاريع
+		{#if activeCount > 0}
+			<span
+				class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-white text-primary text-[11px]">
+				{activeCount}
+			</span>
+		{/if}
+	</button>
+
+	<!-- لوحة الفلاتر الجانبية -->
+	{#if showFilters}
+		<button
+			transition:fade={{ duration: 200 }}
+			onclick={() => (showFilters = false)}
+			class="fixed inset-0 z-40 bg-secondary-700/40 backdrop-blur-sm"
+			aria-label="إغلاق الفلاتر"></button>
+
+		<aside
+			transition:fly={{ x: 420, duration: 300 }}
+			dir="rtl"
+			class="fixed inset-y-0 inset-s-0 z-50 flex w-full max-w-sm flex-col bg-white shadow-2xl font-aljazeera">
+			<div class="flex items-center justify-between p-4 border-b border-secondary-600/10">
+				<h2 class="text-lg font-black text-secondary-700 inline-flex items-center gap-2">
+					<SlidersHorizontal class="w-5 h-5 text-primary" /> تصفية المشاريع
+				</h2>
+				<button
+					onclick={() => (showFilters = false)}
+					class="p-2 rounded-lg text-secondary-500 hover:bg-secondary-100 transition-colors"
+					aria-label="إغلاق">
+					<X class="w-5 h-5" />
+				</button>
 			</div>
 
-			{@render filterSelect(cityOptions, city, (v) => (city = v))}
-			{@render filterSelect(typeOptions, type, (v) => (type = v))}
-			{@render filterSelect(unitTypeOptions, unitType, (v) => (unitType = v))}
-			{@render filterSelect(statusOptions, status, (v) => (status = v))}
-			{@render filterSelect(priceOptions, priceRange, (v) => (priceRange = v))}
-			{@render filterSelect(sortOptions, sort, (v) => (sort = v))}
-		</div>
+			<div class="flex-1 overflow-y-auto p-4 space-y-4">
+				{@render field('المدينة', cityOptions, city, (v) => (city = v))}
+				{@render field('نوع العقار', typeOptions, type, (v) => (type = v))}
+				{@render field('نوع الوحدة', unitTypeOptions, unitType, (v) => (unitType = v))}
+				{@render field('حالة البناء', statusOptions, status, (v) => (status = v))}
+				{@render field('السعر', priceOptions, priceRange, (v) => (priceRange = v))}
+				{@render field('الترتيب', sortOptions, sort, (v) => (sort = v))}
+			</div>
 
-		<div class="flex items-center justify-between mt-4 pt-3 border-t border-secondary-600/10">
-			<p class="text-sm text-secondary-500">
-				عدد النتائج: <span class="font-bold text-secondary-700">{filtered.length}</span>
-			</p>
-			{#if activeCount > 0}
+			<div class="p-4 border-t border-secondary-600/10 flex items-center gap-3">
 				<button
 					onclick={resetFilters}
-					class="inline-flex items-center gap-1 text-sm font-bold text-primary hover:text-primary-400 transition-colors">
-					<X class="w-4 h-4" /> مسح الفلاتر ({activeCount})
+					class="flex-1 h-11 rounded-xl border border-secondary-600/20 font-bold text-secondary-600 hover:bg-secondary-100 transition-colors">
+					مسح الكل
 				</button>
-			{/if}
-		</div>
-	</div>
+				<button
+					onclick={() => (showFilters = false)}
+					class="flex-[2] h-11 rounded-xl bg-primary text-white font-black hover:bg-primary-400 transition-colors">
+					عرض {filtered.length} نتيجة
+				</button>
+			</div>
+		</aside>
+	{/if}
 
 	<!-- شبكة المشاريع -->
 	{#if filtered.length > 0}
@@ -163,25 +194,39 @@
 	{/if}
 </div>
 
+<!-- حقل فلتر مع عنوان داخل اللوحة الجانبية -->
+{#snippet field(
+	label: string,
+	options: { value: string; label: string }[],
+	value: string,
+	onSelect: (v: string) => void
+)}
+	<div class="space-y-1.5">
+		<span class="block text-sm font-bold text-secondary-600">{label}</span>
+		{@render filterSelect(options, value, onSelect)}
+	</div>
+{/snippet}
+
 <!-- فلتر منسدل باستخدام bits-ui -->
 {#snippet filterSelect(options: { value: string; label: string }[], value: string, onSelect: (v: string) => void)}
 	{@const current = options.find((o) => o.value === value) ?? options[0]}
-	<Select.Root type="single" {value} onValueChange={(v) => onSelect(v ?? '')}>
+	<Select.Root type="single" {value} allowDeselect={false} onValueChange={(v) => onSelect(v || 'all')}>
 		<Select.Trigger
 			class="flex h-11 w-full items-center justify-between rounded-xl border border-secondary-600/20 bg-secondary-100/60 px-4 text-secondary-700 focus:outline-none focus:ring-2 focus:ring-primary/40 data-[state=open]:ring-2 data-[state=open]:ring-primary/40">
-			<span class="truncate {value ? 'font-bold text-secondary-700' : 'text-secondary-400'}">{current.label}</span>
+			<span class="truncate {value !== 'all' ? 'font-bold text-secondary-700' : 'text-secondary-400'}"
+				>{current.label}</span>
 			<ChevronDown class="w-4 h-4 text-secondary-400 shrink-0" />
 		</Select.Trigger>
 		<Select.Portal>
 			<Select.Content
 				sideOffset={6}
-				class="z-50 max-h-64 w-[var(--bits-select-anchor-width)] overflow-y-auto rounded-xl border border-secondary-600/15 bg-white p-1 shadow-xl">
+				class="z-[60] max-h-64 w-[var(--bits-select-anchor-width)] overflow-y-auto rounded-xl border border-secondary-600/15 bg-white p-1 shadow-xl">
 				<Select.Viewport>
 					{#each options as option (option.value)}
 						<Select.Item
 							value={option.value}
 							label={option.label}
-							class="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm text-secondary-700 outline-none data-highlighted:bg-secondary-100 data-[state=checked]:font-bold">
+							class="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm text-secondary-700 outline-none data-[highlighted]:bg-secondary-100 data-[selected]:bg-secondary-100/70 data-[selected]:font-bold">
 							{#snippet children({ selected })}
 								<span>{option.label}</span>
 								{#if selected}

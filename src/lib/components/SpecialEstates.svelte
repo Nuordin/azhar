@@ -2,6 +2,9 @@
 	import { _ } from 'svelte-i18n';
 	import { ChevronLeft } from '@lucide/svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
+	import i1 from '$lib/assets/tmp/1.avif';
+	import i2 from '$lib/assets/tmp/2.avif';
+	import i3 from '$lib/assets/tmp/3.avif';
 
 	type projectListType = {
 		id: number;
@@ -11,6 +14,10 @@
 	}[];
 
 	let { projectList }: { projectList: projectListType } = $props();
+
+	// صور مؤقتة تتكرر عند غياب صورة المشروع
+	const gallery = [i1, i2, i3];
+	let items = $derived((projectList ?? []).map((p, i) => ({ ...p, image: p.image ?? gallery[i % gallery.length] })));
 </script>
 
 <div class="px-4 md:px-10 lg:px-16 mt-16" dir="rtl">
@@ -20,7 +27,7 @@
 	<p class="text-2xl max-w-2xl mx-auto mb-8 text-center">{$_('specialEstates.description')}</p>
 
 	<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto">
-		{#each projectList.slice(0, 6) as project (project.id)}
+		{#each items.slice(0, 6) as project, idx (idx)}
 			<ProjectCard {project} />
 		{/each}
 	</div>
