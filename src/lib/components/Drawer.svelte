@@ -14,6 +14,7 @@
 	// <li><a href="#contact">{$_('header.contact')}</a></li>
 	const navLinks = [
 		{ name: $_('header.projects'), href: '/' },
+		{ name: 'الوحدات', href: '/units' },
 		{ name: $_('header.services'), href: '/services' },
 		{ name: $_('header.about'), href: '/about' },
 		{ name: $_('header.blog'), href: '/blog' },

@@ -40,11 +40,11 @@
 	};
 </script>
 
-<div class="px-8 md:px-10 lg:px-16 mt-16 max-w-7xl mx-auto">
-	<h1 class="text-4xl md:text-5xl font-bold text-secondary-600 text-center w-full mb-4">
+<div class="px-4 md:px-10 lg:px-16 mt-16 w-full mx-auto">
+	<h1 class="text-4xl md:text-5xl font-bold text-secondary-600 text-center lg:text-start w-full mb-4">
 		{$_('new_blogs.title')}
 	</h1>
-	<p class="text-2xl max-w-2xl mx-auto mb-8 text-center">{$_('new_blogs.description')}</p>
+	<p class="text-2xl max-w-2xl mx-auto lg:mx-0 mb-8 text-center lg:text-start">{$_('new_blogs.description')}</p>
 	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
 		{#each projects as item (item.id)}
 			{@render project(item)}
