@@ -1,20 +1,85 @@
 import { db } from '$lib/server/db';
 import { media, projects, projectTranslations } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
-	const topProjects = await db
-		.select({
-			id: projects.id,
-			title: projectTranslations.title,
-			description: projectTranslations.description,
-			image: media.url
-		})
-		.from(projects)
-		.leftJoin(projectTranslations, eq(projects.id, projectTranslations.projectId))
-		.leftJoin(media, eq(projects.id, media.projectId));
+const LOCALE = 'ar';
 
-	console.log(topProjects);
-	return { topProjects };
+// شكل بطاقة المشروع كما يتوقعه ProjectCard
+const projectCardSelect = {
+	id: projects.id,
+	title: projectTranslations.title,
+	description: projectTranslations.description,
+	developer: projectTranslations.developerName,
+	city: projectTranslations.locationName,
+	constructionStatus: projects.constructionStatus,
+	completionPercentage: projects.completionPercentage,
+	startingPrice: projects.startingPrice,
+	deliveryDate: projects.deliveryDate,
+	isFeatured: projects.isFeatured,
+	image: media.url
+};
+
+type ProjectCardRow = {
+	id: number;
+	title: string | null;
+	description: string | null;
+	developer: string | null;
+	city: string | null;
+	constructionStatus: 'off_plan' | 'under_construction' | 'ready' | null;
+	completionPercentage: string | null;
+	startingPrice: number | null;
+	deliveryDate: number | Date | null;
+	isFeatured: boolean;
+	image: string | null;
+};
+
+const shape = (rows: ProjectCardRow[]) =>
+	rows.map((p) => ({
+		id: p.id,
+		title: p.title,
+		description: p.description,
+		developer: p.developer,
+		city: p.city,
+		image: p.image,
+		constructionStatus: p.constructionStatus,
+		completion: p.completionPercentage != null ? Number(p.completionPercentage) : null,
+		startingPrice: p.startingPrice,
+		deliveryYear: p.deliveryDate ? new Date(p.deliveryDate).getFullYear() : null,
+		featured: p.isFeatured
+	}));
+
+export const load: PageServerLoad = async () => {
+	// المشاريع المميّزة (تُعرض في قسم "عقارات مميزة")
+	const featuredRows: ProjectCardRow[] = await db
+		.select(projectCardSelect)
+		.from(projects)
+		.leftJoin(
+			projectTranslations,
+			and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
+		)
+		.leftJoin(media, and(eq(projects.id, media.projectId), eq(media.isMain, true)))
+		.where(and(eq(projects.isPublished, true), eq(projects.isFeatured, true)))
+		.orderBy(asc(projects.featuredOrder), desc(projects.createdAt))
+		.limit(6);
+
+	// أحدث المشاريع (تُعرض في قسم "أحدث المشاريع")
+	const latestRows: ProjectCardRow[] = await db
+		.select(projectCardSelect)
+		.from(projects)
+		.leftJoin(
+			projectTranslations,
+			and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
+		)
+		.leftJoin(media, and(eq(projects.id, media.projectId), eq(media.isMain, true)))
+		.where(eq(projects.isPublished, true))
+		.orderBy(desc(projects.createdAt))
+		.limit(3);
+
+	const featuredProjects = shape(featuredRows);
+	// إن لم توجد مشاريع مميّزة، اعرض أحدث المشاريع بدل ترك القسم فارغاً
+	return {
+		featuredProjects: featuredProjects.length > 0 ? featuredProjects : shape(latestRows),
+		latestProjects: shape(latestRows)
+	};
 };

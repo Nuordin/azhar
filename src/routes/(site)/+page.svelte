@@ -9,14 +9,13 @@
 	import LatestBlogs from '$lib/components/LatestBlogs.svelte';
 
 	let { data } = $props();
-	let { topProjects } = $derived(data);
 </script>
 
 <SliderHero />
 <HomeNewSearch />
 <About />
 <OurServices />
-<SpecialEstates projectList={topProjects} />
-<NewProjects />
+<SpecialEstates projectList={data.featuredProjects} />
+<NewProjects projectList={data.latestProjects} />
 <Sponsers />
 <LatestBlogs />

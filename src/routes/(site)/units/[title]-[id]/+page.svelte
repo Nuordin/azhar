@@ -1,9 +1,28 @@
 <script lang="ts">
 	import Icons from '$lib/components/Icons.svelte';
-	import Sheet from '$lib/components/Sheet.svelte';
+	import ContactUs from '$lib/components/ContactUs.svelte';
+	import BookViewing from '$lib/components/BookViewing.svelte';
 	import Galary from '$lib/components/Galary.svelte';
-	import { cn, formatCurrency, unitTypesMap, constructionMap, ownershipTypeMap, unitStatusMap, offerMap } from '$lib/utils';
-	import { Bath, BedDouble, Building2, Construction, Grid2x2, Images, KeyRound, MapPin, ImageOff } from '@lucide/svelte';
+	import {
+		cn,
+		formatCurrency,
+		unitTypesMap,
+		constructionMap,
+		ownershipTypeMap,
+		unitStatusMap,
+		offerMap
+	} from '$lib/utils';
+	import {
+		Bath,
+		BedDouble,
+		Building2,
+		Construction,
+		Grid2x2,
+		Images,
+		KeyRound,
+		MapPin,
+		ImageOff
+	} from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -19,12 +38,11 @@
 	const paymentPlans = $derived((t?.paymentPlans as Detail[] | null) ?? []);
 	const extraDetails = $derived((t?.details as Detail[] | null) ?? []);
 
-	const deliveryDate = $derived(
-		unit.deliveryDate ? new Date(unit.deliveryDate).toLocaleDateString('ar-OM') : '—'
-	);
+	const deliveryDate = $derived(unit.deliveryDate ? new Date(unit.deliveryDate).toLocaleDateString('ar-OM') : '—');
 	const completion = $derived(unit.completionPercentage != null ? Number(unit.completionPercentage) : 0);
 
-	let showSheet = $state(false);
+	let showContact = $state(false);
+	let showBooking = $state(false);
 	let showGalary = $state(false);
 	let selected = $state('');
 	const openGalary = (image: string) => {
@@ -78,7 +96,8 @@
 			</div>
 		</div>
 	{:else}
-		<div class="mt-4 w-full h-64 rounded-xl bg-secondary-200/40 flex flex-col items-center justify-center gap-2 text-secondary-400">
+		<div
+			class="mt-4 w-full h-64 rounded-xl bg-secondary-200/40 flex flex-col items-center justify-center gap-2 text-secondary-400">
 			<ImageOff class="w-10 h-10" />
 			<span class="text-sm font-bold">لا توجد صور</span>
 		</div>
@@ -196,20 +215,21 @@
 
 	<!-- شريط التواصل السفلي -->
 	<div class="fixed bottom-0 right-0 left-0 p-4 flex gap-4 items-center justify-center bg-secondary-100 z-10">
-		<button class="py-2 text-primary border border-primary font-bold rounded-xl grow" onclick={() => (showSheet = true)}>
+		<button
+			class="py-2 text-primary border border-primary font-bold rounded-xl grow"
+			onclick={() => (showContact = true)}>
 			تواصل معنا
+		</button>
+		<button class="py-2 bg-primary text-secondary-100 font-bold rounded-xl grow" onclick={() => (showBooking = true)}>
+			حجز معاينة
 		</button>
 	</div>
 
-	<Sheet bind:isOpen={showSheet} class="pt-4">
-		<div class="px-8 py-6 flex flex-col gap-4">
-			<h2 class="text-xl font-bold text-secondary-600">تواصل معنا</h2>
-			<p class="text-secondary-500">للاستفسار عن هذه الوحدة، يسعدنا تواصلك معنا عبر القنوات التالية.</p>
-		</div>
-	</Sheet>
+	<ContactUs bind:open={showContact} title={t?.title} />
+	<BookViewing bind:open={showBooking} title={t?.title} />
 </div>
 
-<Galary images={images} bind:open={showGalary} bind:selected />
+<Galary {images} bind:open={showGalary} bind:selected />
 
 {#snippet progress(percent: number, current: number)}
 	{#if percent >= current}

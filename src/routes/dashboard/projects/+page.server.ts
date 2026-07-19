@@ -110,8 +110,7 @@ export const actions = {
 		if (!deliveryDate) return fail(422, { message: 'يجب الا يكون حقل تاريخ التسليم فارغا' });
 		if (startingPriceRaw && isNaN(Number(startingPriceRaw)))
 			return fail(422, { message: 'يجب أن يكون حقل السعر المبدئي رقماً' });
-		if (files.filter((file) => file.size > 0).length < 1)
-			return fail(422, { message: 'يجب رفع صورة واحدة على الأقل' });
+		if (files.filter((file) => file.size > 0).length < 1) return fail(422, { message: 'يجب رفع صورة واحدة على الأقل' });
 
 		try {
 			const [newProject] = await db
@@ -286,8 +285,7 @@ export const actions = {
 						const fileName = file.url.replace('/uploads/', '');
 						await fs.unlink(path.join(uploadDir, fileName));
 					} catch (e) {
-						console.log(e);
-						console.error(`لم يتم العثور على الملف لحذفه: ${file.url}`);
+						console.error(`لم يتم العثور على الملف لحذفه: ${file.url}`, e);
 					}
 				}
 				await db.delete(media).where(inArray(media.id, deletedMediaIds));

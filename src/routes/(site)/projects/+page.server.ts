@@ -1,221 +1,130 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { db } from '$lib/server/db';
+import { projects, projectTranslations, media } from '$lib/server/db/schema';
+import { and, asc, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-// بيانات وهمية للعرض فقط — غير متصلة بقاعدة البيانات
-export type MockProject = {
+const LOCALE = 'ar';
+const LIMIT = 12;
+
+type ProjectRow = {
 	id: number;
-	title: string;
-	developer: string;
-	city: string;
-	description: string;
-	type: 'residential' | 'commercial' | 'mixed' | 'land';
-	unitType: 'villa' | 'apartment' | 'townhouse' | 'land' | 'shop';
-	constructionStatus: 'off_plan' | 'under_construction' | 'ready';
-	completion: number;
-	startingPrice: number;
-	bedrooms: number;
-	deliveryYear: number;
-	image: string;
-	featured: boolean;
+	title: string | null;
+	developer: string | null;
+	description: string | null;
+	city: string | null;
+	constructionStatus: 'off_plan' | 'under_construction' | 'ready' | null;
+	completionPercentage: string | null;
+	startingPrice: number | null;
+	deliveryDate: number | Date | null;
+	isFeatured: boolean;
+	image: string | null;
 };
 
-const img = (seed: string) => `https://picsum.photos/seed/${seed}/800/600`;
+export const load: PageServerLoad = async ({ url }) => {
+	const city = url.searchParams.get('city') ?? 'all';
+	const construction = url.searchParams.get('status') ?? 'all';
+	const priceRange = url.searchParams.get('price') ?? 'all';
+	const sort = url.searchParams.get('sort') ?? 'all';
+	const q = url.searchParams.get('q')?.trim() ?? '';
+	const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1') || 1);
+	const offset = (page - 1) * LIMIT;
 
-const projects: MockProject[] = [
-	{
-		id: 1,
-		title: 'واحة الموج السكنية',
-		developer: 'شركة الأزهر العقارية',
-		city: 'مسقط',
-		description: 'مجمع سكني فاخر يطل على البحر مع مرافق متكاملة وحدائق واسعة.',
-		type: 'residential',
-		unitType: 'apartment',
-		constructionStatus: 'under_construction',
-		completion: 65,
-		startingPrice: 45000,
-		bedrooms: 2,
-		deliveryYear: 2026,
-		image: img('almouj'),
-		featured: true
-	},
-	{
-		id: 2,
-		title: 'فلل تلال قريات',
-		developer: 'مجموعة الخليج للتطوير',
-		city: 'قريات',
-		description: 'فلل مستقلة بتصاميم عصرية ومساحات خضراء في قلب الطبيعة.',
-		type: 'residential',
-		unitType: 'villa',
-		constructionStatus: 'off_plan',
-		completion: 10,
-		startingPrice: 120000,
-		bedrooms: 4,
-		deliveryYear: 2027,
-		image: img('qurayat'),
-		featured: true
-	},
-	{
-		id: 3,
-		title: 'برج الأعمال المركزي',
-		developer: 'الأزهر للاستثمار',
-		city: 'مسقط',
-		description: 'مكاتب ومحلات تجارية في موقع استراتيجي بمنطقة الأعمال.',
-		type: 'commercial',
-		unitType: 'shop',
-		constructionStatus: 'ready',
-		completion: 100,
-		startingPrice: 85000,
-		bedrooms: 0,
-		deliveryYear: 2024,
-		image: img('business'),
-		featured: false
-	},
-	{
-		id: 4,
-		title: 'تاون هاوس النسيم',
-		developer: 'إعمار عُمان',
-		city: 'صحار',
-		description: 'وحدات تاون هاوس متلاصقة بأسعار تنافسية وتشطيبات راقية.',
-		type: 'residential',
-		unitType: 'townhouse',
-		constructionStatus: 'under_construction',
-		completion: 40,
-		startingPrice: 68000,
-		bedrooms: 3,
-		deliveryYear: 2026,
-		image: img('naseem'),
-		featured: false
-	},
-	{
-		id: 5,
-		title: 'أراضي سكنية - نزوى',
-		developer: 'الأزهر العقارية',
-		city: 'نزوى',
-		description: 'قطع أراضي سكنية جاهزة للبناء في مخطط معتمد بالخدمات.',
-		type: 'land',
-		unitType: 'land',
-		constructionStatus: 'ready',
-		completion: 100,
-		startingPrice: 25000,
-		bedrooms: 0,
-		deliveryYear: 2024,
-		image: img('nizwa'),
-		featured: false
-	},
-	{
-		id: 6,
-		title: 'مجمع صلالة جاردنز',
-		developer: 'مجموعة ظفار',
-		city: 'صلالة',
-		description: 'شقق عائلية محاطة بالحدائق قرب الشاطئ ومناطق الخدمات.',
-		type: 'mixed',
-		unitType: 'apartment',
-		constructionStatus: 'off_plan',
-		completion: 5,
-		startingPrice: 38000,
-		bedrooms: 2,
-		deliveryYear: 2028,
-		image: img('salalah'),
-		featured: true
-	},
-	{
-		id: 7,
-		title: 'فلل الواجهة البحرية',
-		developer: 'مجموعة الخليج للتطوير',
-		city: 'صور',
-		description: 'فلل فاخرة على الواجهة البحرية بمسابح خاصة وإطلالات مفتوحة.',
-		type: 'residential',
-		unitType: 'villa',
-		constructionStatus: 'ready',
-		completion: 100,
-		startingPrice: 180000,
-		bedrooms: 5,
-		deliveryYear: 2023,
-		image: img('waterfront'),
-		featured: true
-	},
-	{
-		id: 8,
-		title: 'بلازا البريمي التجارية',
-		developer: 'الأزهر للاستثمار',
-		city: 'البريمي',
-		description: 'محلات ومعارض تجارية في مركز حيوي بمساحات متنوعة.',
-		type: 'commercial',
-		unitType: 'shop',
-		constructionStatus: 'under_construction',
-		completion: 55,
-		startingPrice: 52000,
-		bedrooms: 0,
-		deliveryYear: 2025,
-		image: img('plaza'),
-		featured: false
-	},
-	{
-		id: 9,
-		title: 'شقق المعبيلة الحديثة',
-		developer: 'إعمار عُمان',
-		city: 'مسقط',
-		description: 'شقق ذكية بأسعار مناسبة للعائلات الشابة قرب كل الخدمات.',
-		type: 'residential',
-		unitType: 'apartment',
-		constructionStatus: 'off_plan',
-		completion: 20,
-		startingPrice: 32000,
-		bedrooms: 1,
-		deliveryYear: 2027,
-		image: img('maabela'),
-		featured: false
-	},
-	{
-		id: 10,
-		title: 'مخطط أراضي صحار الصناعي',
-		developer: 'مجموعة ظفار',
-		city: 'صحار',
-		description: 'أراضي بمساحات كبيرة ضمن المنطقة الصناعية بخدمات متكاملة.',
-		type: 'land',
-		unitType: 'land',
-		constructionStatus: 'ready',
-		completion: 100,
-		startingPrice: 90000,
-		bedrooms: 0,
-		deliveryYear: 2024,
-		image: img('industrial'),
-		featured: false
-	},
-	{
-		id: 11,
-		title: 'فلل حدائق نزوى',
-		developer: 'الأزهر العقارية',
-		city: 'نزوى',
-		description: 'فلل بتصميم تراثي عصري وحدائق خاصة في بيئة هادئة.',
-		type: 'residential',
-		unitType: 'villa',
-		constructionStatus: 'under_construction',
-		completion: 75,
-		startingPrice: 105000,
-		bedrooms: 4,
-		deliveryYear: 2025,
-		image: img('gardens'),
-		featured: true
-	},
-	{
-		id: 12,
-		title: 'مركز صلالة المختلط',
-		developer: 'مجموعة الخليج للتطوير',
-		city: 'صلالة',
-		description: 'مشروع متعدد الاستخدامات يجمع السكن والتجارة في مكان واحد.',
-		type: 'mixed',
-		unitType: 'townhouse',
-		constructionStatus: 'off_plan',
-		completion: 0,
-		startingPrice: 60000,
-		bedrooms: 3,
-		deliveryYear: 2028,
-		image: img('mixed'),
-		featured: false
+	const conditions: SQL[] = [eq(projects.isPublished, true)];
+
+	if (construction !== 'all') conditions.push(eq(projects.constructionStatus, construction as any));
+	if (city !== 'all') conditions.push(eq(projectTranslations.locationName, city));
+
+	if (priceRange !== 'all') {
+		const [minStr, maxStr] = priceRange.split('-');
+		const min = Number(minStr);
+		const max = Number(maxStr);
+		if (!isNaN(min) && min > 0) conditions.push(sql`${projects.startingPrice} >= ${min}`);
+		if (maxStr && !isNaN(max)) conditions.push(sql`${projects.startingPrice} <= ${max}`);
 	}
-];
 
-export const load: PageServerLoad = async () => {
-	// عينة وهمية فقط، بدون اتصال بقاعدة البيانات
-	return { projects };
+	if (q) {
+		const term = `%${q}%`;
+		const search = or(like(projectTranslations.title, term), like(projectTranslations.locationName, term));
+		if (search) conditions.push(search);
+	}
+
+	const where = and(...conditions);
+
+	const orderBy =
+		sort === 'price_asc'
+			? [asc(projects.startingPrice)]
+			: sort === 'price_desc'
+				? [desc(projects.startingPrice)]
+				: sort === 'delivery'
+					? [asc(projects.deliveryDate)]
+					: [desc(projects.isFeatured), asc(projects.featuredOrder), desc(projects.createdAt)];
+
+	try {
+		const rows: ProjectRow[] = await db
+			.select({
+				id: projects.id,
+				title: projectTranslations.title,
+				developer: projectTranslations.developerName,
+				description: projectTranslations.description,
+				city: projectTranslations.locationName,
+				constructionStatus: projects.constructionStatus,
+				completionPercentage: projects.completionPercentage,
+				startingPrice: projects.startingPrice,
+				deliveryDate: projects.deliveryDate,
+				isFeatured: projects.isFeatured,
+				image: media.url
+			})
+			.from(projects)
+			.leftJoin(
+				projectTranslations,
+				and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
+			)
+			.leftJoin(media, and(eq(projects.id, media.projectId), eq(media.isMain, true)))
+			.where(where)
+			.orderBy(...orderBy)
+			.limit(LIMIT)
+			.offset(offset);
+
+		const projectList = rows.map((p) => ({
+			id: p.id,
+			title: p.title,
+			description: p.description,
+			developer: p.developer,
+			city: p.city,
+			image: p.image,
+			constructionStatus: p.constructionStatus,
+			completion: p.completionPercentage != null ? Number(p.completionPercentage) : null,
+			startingPrice: p.startingPrice,
+			deliveryYear: p.deliveryDate ? new Date(p.deliveryDate).getFullYear() : null,
+			featured: p.isFeatured
+		}));
+
+		const totalCount = await db.$count(projects, where);
+		const totalPages = Math.ceil(totalCount / LIMIT);
+
+		// المدن المتاحة لعامل التصفية (قيم locationName الفريدة للمشاريع المنشورة)
+		const cityRows = await db
+			.selectDistinct({ city: projectTranslations.locationName })
+			.from(projectTranslations)
+			.innerJoin(projects, eq(projects.id, projectTranslations.projectId))
+			.where(and(eq(projects.isPublished, true), eq(projectTranslations.locale, LOCALE)));
+		const cities = cityRows.map((c) => c.city).filter((c): c is string => !!c);
+
+		return {
+			projects: projectList,
+			cities,
+			filters: { city, status: construction, price: priceRange, sort, q },
+			pagination: { totalCount, totalPages, currentPage: page, limit: LIMIT }
+		};
+	} catch (error) {
+		console.error(error);
+		return {
+			projects: [],
+			cities: [],
+			filters: { city, status: construction, price: priceRange, sort, q },
+			pagination: { totalCount: 0, totalPages: 0, currentPage: page, limit: LIMIT },
+			error: 'تعذر تحميل المشاريع'
+		};
+	}
 };

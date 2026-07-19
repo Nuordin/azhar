@@ -2,43 +2,18 @@
 	import { Select } from 'bits-ui';
 	import { Search, ChevronDown, Check, X, SlidersHorizontal } from '@lucide/svelte';
 	import { fly, fade } from 'svelte/transition';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
-	import i1 from '$lib/assets/tmp/1.avif';
-	import i2 from '$lib/assets/tmp/2.avif';
-	import i3 from '$lib/assets/tmp/3.avif';
 
 	let { data } = $props();
 
-	// صور مؤقتة تتكرر على المشاريع
-	const gallery = [i1, i2, i3];
-	let projects = $derived(data.projects.map((p, i) => ({ ...p, image: gallery[i % gallery.length] })));
-
-	// خيارات الفلاتر — نستخدم "all" بدلاً من قيمة فارغة لأن bits-ui يعتبر السلسلة الفارغة "بدون اختيار"
-	const cityOptions = [
+	// خيارات المدن مبنية من قيم قاعدة البيانات
+	const cityOptions = $derived([
 		{ value: 'all', label: 'كل المدن' },
-		{ value: 'مسقط', label: 'مسقط' },
-		{ value: 'صلالة', label: 'صلالة' },
-		{ value: 'صحار', label: 'صحار' },
-		{ value: 'نزوى', label: 'نزوى' },
-		{ value: 'صور', label: 'صور' },
-		{ value: 'قريات', label: 'قريات' },
-		{ value: 'البريمي', label: 'البريمي' }
-	];
-	const typeOptions = [
-		{ value: 'all', label: 'كل الأنواع' },
-		{ value: 'residential', label: 'سكني' },
-		{ value: 'commercial', label: 'تجاري' },
-		{ value: 'mixed', label: 'مختلط' },
-		{ value: 'land', label: 'أرض' }
-	];
-	const unitTypeOptions = [
-		{ value: 'all', label: 'كل الوحدات' },
-		{ value: 'villa', label: 'فيلا' },
-		{ value: 'apartment', label: 'شقة' },
-		{ value: 'townhouse', label: 'تاون هاوس' },
-		{ value: 'shop', label: 'محل تجاري' },
-		{ value: 'land', label: 'أرض' }
-	];
+		...data.cities.map((c) => ({ value: c, label: c }))
+	]);
 	const statusOptions = [
 		{ value: 'all', label: 'كل الحالات' },
 		{ value: 'off_plan', label: 'على المخطط' },
@@ -59,45 +34,22 @@
 		{ value: 'delivery', label: 'أقرب تسليم' }
 	];
 
-	// حالة الفلاتر
 	let showFilters = $state(false);
-	let city = $state('all');
-	let type = $state('all');
-	let unitType = $state('all');
-	let status = $state('all');
-	let priceRange = $state('all');
-	let sort = $state('all');
 
-	let activeCount = $derived([city, type, unitType, status, priceRange].filter((v) => v !== 'all').length);
+	let f = $derived(data.filters);
+	let activeCount = $derived([f.city, f.status, f.price].filter((v) => v && v !== 'all').length);
 
-	function resetFilters() {
-		city = 'all';
-		type = 'all';
-		unitType = 'all';
-		status = 'all';
-		priceRange = 'all';
-		sort = 'all';
+	function setParam(key: string, value: string) {
+		const params = new SvelteURLSearchParams(page.url.searchParams);
+		if (!value || value === 'all') params.delete(key);
+		else params.set(key, value);
+		params.delete('page');
+		goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
 	}
 
-	let filtered = $derived.by(() => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		let list = projects.filter((p: any) => {
-			if (city !== 'all' && p.city !== city) return false;
-			if (type !== 'all' && p.type !== type) return false;
-			if (unitType !== 'all' && p.unitType !== unitType) return false;
-			if (status !== 'all' && p.constructionStatus !== status) return false;
-			if (priceRange !== 'all') {
-				const [min, max] = priceRange.split('-').map(Number);
-				if (p.startingPrice < min) return false;
-				if (max && p.startingPrice > max) return false;
-			}
-			return true;
-		});
-		if (sort === 'price_asc') list = [...list].sort((a, b) => a.startingPrice - b.startingPrice);
-		else if (sort === 'price_desc') list = [...list].sort((a, b) => b.startingPrice - a.startingPrice);
-		else if (sort === 'delivery') list = [...list].sort((a, b) => a.deliveryYear - b.deliveryYear);
-		return list;
-	});
+	function resetFilters() {
+		goto('?', { keepFocus: true, noScroll: true });
+	}
 </script>
 
 <div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-10 lg:px-16 pt-10 pb-28">
@@ -148,12 +100,10 @@
 			</div>
 
 			<div class="flex-1 overflow-y-auto p-4 space-y-4">
-				{@render field('المدينة', cityOptions, city, (v) => (city = v))}
-				{@render field('نوع العقار', typeOptions, type, (v) => (type = v))}
-				{@render field('نوع الوحدة', unitTypeOptions, unitType, (v) => (unitType = v))}
-				{@render field('حالة البناء', statusOptions, status, (v) => (status = v))}
-				{@render field('السعر', priceOptions, priceRange, (v) => (priceRange = v))}
-				{@render field('الترتيب', sortOptions, sort, (v) => (sort = v))}
+				{@render field('المدينة', cityOptions, f.city, (v) => setParam('city', v))}
+				{@render field('حالة البناء', statusOptions, f.status, (v) => setParam('status', v))}
+				{@render field('السعر', priceOptions, f.price, (v) => setParam('price', v))}
+				{@render field('الترتيب', sortOptions, f.sort, (v) => setParam('sort', v))}
 			</div>
 
 			<div class="p-4 border-t border-secondary-600/10 flex items-center gap-3">
@@ -165,16 +115,16 @@
 				<button
 					onclick={() => (showFilters = false)}
 					class="flex-[2] h-11 rounded-xl bg-primary text-white font-black hover:bg-primary-400 transition-colors">
-					عرض {filtered.length} نتيجة
+					عرض {data.pagination.totalCount} نتيجة
 				</button>
 			</div>
 		</aside>
 	{/if}
 
 	<!-- شبكة المشاريع -->
-	{#if filtered.length > 0}
+	{#if data.projects.length > 0}
 		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto">
-			{#each filtered as project (project.id)}
+			{#each data.projects as project (project.id)}
 				<ProjectCard {project} />
 			{/each}
 		</div>

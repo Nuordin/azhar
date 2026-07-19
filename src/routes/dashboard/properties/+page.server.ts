@@ -266,10 +266,7 @@ export const actions = {
 
 			const deletedMediaIds = JSON.parse((formData.get('deletedMediaIds') as string) || '[]');
 			if (deletedMediaIds.length > 0) {
-				const mediaToDelete = await db
-					.select({ url: media.url })
-					.from(media)
-					.where(inArray(media.id, deletedMediaIds));
+				const mediaToDelete = await db.select({ url: media.url }).from(media).where(inArray(media.id, deletedMediaIds));
 				const uploadDir = path.join(process.cwd(), '..', 'ASSETS', 'uploads');
 
 				for (const file of mediaToDelete) {
@@ -368,12 +365,10 @@ export const actions = {
 		}
 	},
 	togglePublish: async ({ request }) => {
-		console.log('togglePublish request', request);
 		const formData = await request.formData();
 		const id = Number(formData.get('id'));
 		const isPublished = formData.get('isPublished') === 'true';
 
-		console.log('togglePublish formData', formData);
 		if (!id || isNaN(id)) {
 			return fail(400, { message: 'معرف المشروع غير صحيح' });
 		}
