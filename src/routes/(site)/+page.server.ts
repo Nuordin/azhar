@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { media, projects, projectTranslations } from '$lib/server/db/schema';
+import { blogs, blogTranslations, media, projects, projectTranslations } from '$lib/server/db/schema';
 import { and, asc, desc, eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
@@ -76,10 +76,28 @@ export const load: PageServerLoad = async () => {
 		.orderBy(desc(projects.createdAt))
 		.limit(3);
 
+	// أحدث مقالات المدونة المنشورة (قسم "أحدث المقالات")
+	const latestBlogs = await db
+		.select({
+			id: blogs.id,
+			category: blogs.category,
+			publishedAt: blogs.publishedAt,
+			title: blogTranslations.title,
+			excerpt: blogTranslations.excerpt,
+			image: media.url
+		})
+		.from(blogs)
+		.leftJoin(blogTranslations, and(eq(blogs.id, blogTranslations.blogId), eq(blogTranslations.locale, LOCALE)))
+		.leftJoin(media, and(eq(blogs.id, media.blogId), eq(media.isMain, true)))
+		.where(eq(blogs.isPublished, true))
+		.orderBy(desc(blogs.publishedAt), desc(blogs.createdAt))
+		.limit(3);
+
 	const featuredProjects = shape(featuredRows);
 	// إن لم توجد مشاريع مميّزة، اعرض أحدث المشاريع بدل ترك القسم فارغاً
 	return {
 		featuredProjects: featuredProjects.length > 0 ? featuredProjects : shape(latestRows),
-		latestProjects: shape(latestRows)
+		latestProjects: shape(latestRows),
+		blogs: latestBlogs
 	};
 };

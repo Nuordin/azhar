@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { MapPin, BedDouble, Bath, Grid2x2, CalendarDays, ChevronLeft, Building2, ImageOff } from '@lucide/svelte';
-	import { categoryTypeMap, unitTypesMap, offerMap, formatCurrency } from '$lib/utils';
+	import { categoryTypeMap, unitTypesMap, offerMap, formatCurrency, slugify } from '$lib/utils';
 
 	type CardUnit = {
 		id: number;
@@ -35,7 +35,7 @@
 </script>
 
 <a
-	href="/units/{unit.title}-{unit.id}"
+	href="/units/{slugify(unit.title ?? '')}-{unit.id}"
 	class="group flex flex-col rounded-3xl bg-white ring-1 ring-secondary-700/10 shadow-sm
 	hover:shadow-2xl hover:shadow-secondary-700/20 hover:ring-secondary-700/15 hover:-translate-y-1.5
 	transition-all duration-300 overflow-hidden">

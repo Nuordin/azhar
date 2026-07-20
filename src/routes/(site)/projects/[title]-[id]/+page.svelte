@@ -1,13 +1,18 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import Icons from '$lib/components/Icons.svelte';
 	import Sheet from '$lib/components/Sheet.svelte';
 	import ContactUs from '$lib/components/ContactUs.svelte';
+	import CompletionProgress from '$lib/components/CompletionProgress.svelte';
 	import Galary from '$lib/components/Galary.svelte';
-	import { cn, formatCurrency, constructionMap, ownershipTypeMap } from '$lib/utils';
+	import Seo from '$lib/components/Seo.svelte';
+	import { SITE_NAME, DEFAULT_DESCRIPTION } from '$lib/config';
+	import { cn, formatCurrency, constructionMap, ownershipTypeMap, offerMap, slugify, truncateForMeta } from '$lib/utils';
 	import {
 		Bath,
 		BedDouble,
 		Building2,
+		ChevronLeft,
 		Construction,
 		Grid2x2,
 		Images,
@@ -25,6 +30,38 @@
 	type Detail = { title: string; description: string };
 
 	const images = $derived(data.media.filter((m) => m.type === 'image').map((m) => m.url));
+
+	// بيانات محركات البحث
+	const seoTitle = $derived(t?.title ? `${t.title} — ${t.locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME);
+	const seoDescription = $derived(t?.description ? truncateForMeta(t.description) : DEFAULT_DESCRIPTION);
+	const canonical = $derived(
+		new URL(`/projects/${encodeURIComponent(slugify(t?.title ?? ''))}-${project.id}`, page.url.origin).href
+	);
+	const ogImage = $derived(images.length > 0 ? new URL(images[0], page.url.origin).href : undefined);
+	const jsonLd = $derived([
+		{
+			'@context': 'https://schema.org',
+			'@type': 'RealEstateListing',
+			name: t?.title ?? SITE_NAME,
+			...(t?.description ? { description: truncateForMeta(t.description) } : {}),
+			url: canonical,
+			...(images.length > 0
+				? { image: images.slice(0, 5).map((url) => new URL(url, page.url.origin).href) }
+				: {}),
+			...(project.startingPrice
+				? { offers: { '@type': 'Offer', price: project.startingPrice, priceCurrency: 'OMR' } }
+				: {})
+		},
+		{
+			'@context': 'https://schema.org',
+			'@type': 'BreadcrumbList',
+			itemListElement: [
+				{ '@type': 'ListItem', position: 1, name: 'الرئيسية', item: new URL('/', page.url.origin).href },
+				{ '@type': 'ListItem', position: 2, name: 'المشاريع', item: new URL('/projects', page.url.origin).href },
+				{ '@type': 'ListItem', position: 3, name: t?.title ?? '', item: canonical }
+			]
+		}
+	]);
 	const amenities = $derived((t?.amenities as Amenity[] | null) ?? []);
 	const paymentPlans = $derived((t?.paymentPlans as Detail[] | null) ?? []);
 	const extraDetails = $derived((t?.details as Detail[] | null) ?? []);
@@ -44,7 +81,9 @@
 	};
 </script>
 
-<div class="w-full p-8 lg:p-16" dir="rtl">
+<Seo title={seoTitle} description={seoDescription} {canonical} {ogImage} {jsonLd} />
+
+<div class="w-full px-4 py-8 md:px-16 lg:px-32" dir="rtl">
 	<div class="flex justify-between items-center gap-4">
 		<div>
 			<h1 class="text-2xl font-bold text-secondary-600">{t?.title ?? 'مشروع'}</h1>
@@ -64,13 +103,15 @@
 		<div class={cn('mt-4 grid grid-rows-2 grid-cols-2 w-full gap-4 overflow-hidden', 'lg:grid-cols-3 lg:grid-rows-1')}>
 			<button
 				onclick={() => openGalary(images[0])}
-				class={cn(' row-span-2 col-span-2 rounded-xl shadow-lg overflow-hidden', 'lg:col-span-2')}>
+				class={cn(' row-span-2 col-span-2 rounded-xl shadow-lg overflow-hidden', 'lg:col-span-2 lg:row-span-1')}>
 				<img src={images[0]} alt={t?.title ?? ''} class="w-full h-full object-cover" />
 			</button>
 			<div class={cn('flex gap-4 col-span-2', 'lg:col-span-1 lg:flex lg:flex-col')}>
 				{#if images[1]}
-					<button onclick={() => openGalary(images[1])} class="rounded-xl shadow-lg overflow-hidden relative">
-						<img src={images[1]} alt="" class="w-full h-full object-cover" />
+					<button
+						onclick={() => openGalary(images[1])}
+						class="flex-1 min-h-0 rounded-xl shadow-lg overflow-hidden relative">
+						<img src={images[1]} alt={t?.title ?? ''} loading="lazy" decoding="async" class="w-full h-full object-cover" />
 						{#if images.length > 2}
 							<div class="absolute inset-0 flex items-center justify-center bg-black/60 text-secondary-100">
 								<Images size={48} />
@@ -79,8 +120,8 @@
 					</button>
 				{/if}
 				{#if images[2]}
-					<button onclick={() => openGalary(images[2])} class="rounded-xl shadow-lg overflow-hidden">
-						<img src={images[2]} alt="" class="w-full h-full object-cover" />
+					<button onclick={() => openGalary(images[2])} class="flex-1 min-h-0 rounded-xl shadow-lg overflow-hidden">
+						<img src={images[2]} alt={t?.title ?? ''} loading="lazy" decoding="async" class="w-full h-full object-cover" />
 					</button>
 				{/if}
 			</div>
@@ -133,11 +174,7 @@
 	{#if project.constructionStatus !== 'ready'}
 		<div class="mt-8">
 			<h1 class="mb-4 text-lg text-secondary-600">نسبة إنجاز المشروع</h1>
-			<div class="flex items-center gap-0 font-inter text-xs">
-				{#each [0, 25, 50, 75, 100] as current (current)}
-					{@render progress(completion, current)}
-				{/each}
-			</div>
+			<CompletionProgress value={completion} />
 		</div>
 	{/if}
 
@@ -195,7 +232,8 @@
 		</div>
 	{/if}
 
-	<div class="fixed bottom-0 right-0 left-0 p-4 flex gap-4 items-center justify-center bg-secondary-100 z-10">
+	<div
+		class="fixed bottom-0 right-0 left-0 p-4 md:px-16 lg:px-32 flex gap-4 items-center justify-center bg-secondary-100 z-10">
 		{#if data.units.length > 0}
 			<button class="py-2 bg-primary text-secondary-100 font-bold rounded-xl grow" onclick={() => (showSheet = true)}>
 				عرض الوحدات ({data.units.length})
@@ -209,12 +247,13 @@
 	</div>
 
 	<Sheet bind:isOpen={showSheet} class="pt-4">
-		<div class="px-8 py-4 border-b border-secondary-600/10">
+		<div class="flex items-center gap-2 px-6 py-4 border-b border-secondary-600/10 md:px-8">
 			<h2 class="text-lg font-bold text-secondary-600">وحدات المشروع</h2>
+			<span class="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-black text-primary">{data.units.length}</span>
 		</div>
-		<div class="select-none overflow-y-scroll h-[calc(60vh-4rem)] flex flex-col gap-4 px-8 py-4">
+		<div class="select-none overflow-y-auto h-[calc(60vh-4rem)] flex flex-col gap-3 px-4 py-4 md:px-6">
 			{#each data.units as unit (unit.id)}
-				<a href="/units/{unit.title}-{unit.id}" class="block">
+				<a href="/units/{slugify(unit.title ?? '')}-{unit.id}" class="block">
 					{@render unitItem(unit)}
 				</a>
 			{/each}
@@ -225,25 +264,6 @@
 </div>
 
 <Galary {images} bind:open={showGalary} bind:selected />
-
-{#snippet progress(percent: number, current: number)}
-	{#if percent >= current}
-		<div class="size-10 rounded-full flex items-center justify-center bg-secondary-700 text-secondary-100">
-			{current}
-		</div>
-	{:else}
-		<div class="size-10 rounded-full flex items-center justify-center bg-secondary-700/20">
-			{current}
-		</div>
-	{/if}
-	{#if current !== 100}
-		{#if percent > current}
-			<div class="h-2 grow bg-secondary-700"></div>
-		{:else}
-			<div class="h-2 grow bg-secondary-700/20"></div>
-		{/if}
-	{/if}
-{/snippet}
 
 {#snippet detailRow(title: string, description: string)}
 	<div class="flex items-center justify-between grow border-secondary-700/10 odd:bg-secondary-200/20 rounded-2xl px-4">
@@ -260,44 +280,79 @@
 	bathrooms: number | null;
 	area: number | null;
 	price: number | null;
+	offerType?: 'rent' | 'sale' | null;
 })}
-	<div class="w-full h-32 rounded-2xl overflow-hidden shadow-sm border-secondary-700/10 border flex items-center">
-		<div
-			class="h-full w-48 shrink-0 border-secondary-700/10 border-e flex items-center justify-center bg-secondary-200/40">
+	<div
+		class="group relative flex gap-3 rounded-2xl bg-white p-2.5 ring-1 ring-secondary-700/10 shadow-sm
+		transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:ring-secondary-700/20">
+		<!-- الصورة -->
+		<div class="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-secondary-200/40 sm:w-32">
 			{#if unit.image}
-				<img src={unit.image} alt={unit.title ?? ''} class="w-full h-full object-cover" />
+				<img
+					src={unit.image}
+					alt={unit.title ?? ''}
+					loading="lazy"
+					class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
 			{:else}
-				<ImageOff class="w-6 h-6 text-secondary-400" />
+				<div class="flex h-full w-full items-center justify-center">
+					<ImageOff class="h-6 w-6 text-secondary-400" />
+				</div>
+			{/if}
+			{#if unit.offerType && offerMap[unit.offerType]}
+				<span
+					class="absolute top-1.5 start-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-white shadow">
+					{offerMap[unit.offerType]}
+				</span>
 			{/if}
 		</div>
-		<div class="h-full w-full flex flex-col p-2 items-start justify-between">
-			<span class="text-sm font-bold line-clamp-1">{unit.title}</span>
-			<span class="line-clamp-2 text-xs text-secondary-500">{unit.description}</span>
-			<div class="flex items-center justify-between w-full mt-1">
-				<div class="flex gap-2 font-inter font-light">
-					{#if (unit.bedrooms ?? 0) > 0}
-						<span
-							class="flex gap-1 text-xs items-center justify-center bg-secondary-700/80 text-secondary-100 px-2 py-1 rounded-md">
-							<BedDouble strokeWidth={1.5} size={12} />{unit.bedrooms}
-						</span>
-					{/if}
-					{#if (unit.bathrooms ?? 0) > 0}
-						<span
-							class="flex gap-1 text-xs items-center justify-center bg-secondary-700/80 text-secondary-100 px-2 py-1 rounded-md">
-							<Bath strokeWidth={1.5} size={12} />{unit.bathrooms}
-						</span>
-					{/if}
-					{#if unit.area}
-						<span
-							class="flex gap-1 text-xs items-center justify-center bg-secondary-700/80 text-secondary-100 px-2 py-1 rounded-md">
-							{unit.area} م²
-						</span>
-					{/if}
-				</div>
-				{#if unit.price != null}
-					<span class="text-xs font-bold text-primary">{formatCurrency(unit.price)}</span>
+
+		<!-- المحتوى -->
+		<div class="flex min-w-0 flex-1 flex-col">
+			<h3 class="line-clamp-1 text-sm font-black text-secondary-700">{unit.title}</h3>
+			{#if unit.description}
+				<p class="mt-0.5 line-clamp-2 text-xs leading-5 text-secondary-500">{unit.description}</p>
+			{/if}
+
+			<!-- الشارات -->
+			<div class="mt-auto flex flex-wrap items-center gap-1.5 pt-2">
+				{#if (unit.bedrooms ?? 0) > 0}
+					<span
+						class="inline-flex items-center gap-1 rounded-lg bg-secondary-100 px-2 py-1 text-[11px] font-bold text-secondary-600 ring-1 ring-secondary-600/10">
+						<BedDouble class="h-3.5 w-3.5 text-secondary-400" />{unit.bedrooms}
+					</span>
+				{/if}
+				{#if (unit.bathrooms ?? 0) > 0}
+					<span
+						class="inline-flex items-center gap-1 rounded-lg bg-secondary-100 px-2 py-1 text-[11px] font-bold text-secondary-600 ring-1 ring-secondary-600/10">
+						<Bath class="h-3.5 w-3.5 text-secondary-400" />{unit.bathrooms}
+					</span>
+				{/if}
+				{#if unit.area}
+					<span
+						class="inline-flex items-center gap-1 rounded-lg bg-secondary-100 px-2 py-1 text-[11px] font-bold text-secondary-600 ring-1 ring-secondary-600/10">
+						<Grid2x2 class="h-3.5 w-3.5 text-secondary-400" />{unit.area}<span class="font-inter">م²</span>
+					</span>
 				{/if}
 			</div>
+		</div>
+
+		<!-- السعر -->
+		<div class="flex shrink-0 flex-col items-end justify-between border-s border-dashed border-secondary-600/15 ps-3">
+			{#if unit.price != null}
+				<div class="text-end leading-tight">
+					<span class="block text-[10px] font-bold text-secondary-400">
+						{unit.offerType === 'rent' ? 'الإيجار' : 'يبدأ من'}
+					</span>
+					<span class="text-sm font-black text-secondary-700">{formatCurrency(unit.price)}</span>
+				</div>
+			{:else}
+				<span class="text-[11px] font-bold text-secondary-400">للسعر تواصل</span>
+			{/if}
+			<span
+				class="inline-flex items-center gap-0.5 text-[11px] font-black text-primary
+				transition-all duration-300 group-hover:gap-1.5">
+				التفاصيل <ChevronLeft class="h-3.5 w-3.5" />
+			</span>
 		</div>
 	</div>
 {/snippet}

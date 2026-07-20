@@ -21,6 +21,11 @@
 				title: 'إدارة الوحدات',
 				url: 'properties',
 				icon: null
+			},
+			{
+				title: 'إدارة المدونة',
+				url: 'blogs',
+				icon: null
 			}
 		]
 	};

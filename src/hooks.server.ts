@@ -19,7 +19,14 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 		event.locals.user = session.user;
 	}
 
-	return svelteKitHandler({ event, resolve, auth, building });
+	const response = await svelteKitHandler({ event, resolve, auth, building });
+
+	// حماية إضافية: منع فهرسة لوحة التحكم حتى لو تجاوزت الصفحة وسم الميتا
+	if (event.url.pathname.startsWith('/dashboard')) {
+		response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+	}
+
+	return response;
 };
 
 export const handle: Handle = handleBetterAuth;

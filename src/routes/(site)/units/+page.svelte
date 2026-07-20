@@ -6,8 +6,11 @@
 	import { page } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import UnitCard from '$lib/components/UnitCard.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 
 	let { data } = $props();
+
+	const canonical = $derived(new URL('/units', page.url.origin).href);
 
 	// خيارات الفلاتر — نستخدم "all" بدلاً من قيمة فارغة لأن bits-ui يعتبر السلسلة الفارغة "بدون اختيار"
 	const categoryOptions = [
@@ -88,7 +91,12 @@
 	}
 </script>
 
-<div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-10 lg:px-16 pt-10 pb-28">
+<Seo
+	title="الوحدات العقارية للبيع والإيجار في سلطنة عمان"
+	description="تصفح الشقق والفلل والأراضي والوحدات التجارية المتاحة للبيع أو الإيجار في سلطنة عمان، مع التصفية حسب النوع والسعر."
+	{canonical} />
+
+<div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-16 lg:px-32 pt-10 pb-28">
 	<!-- الترويسة -->
 	<header class="max-w-3xl mx-auto text-center mb-10">
 		<h1 class="text-4xl md:text-5xl font-black text-secondary-600 mb-3">الوحدات العقارية</h1>

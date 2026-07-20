@@ -12,6 +12,39 @@ export type WithoutChildren<T> = T extends { children?: any } ? Omit<T, 'childre
 export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>;
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & { ref?: U | null };
 
+/**
+ * يحول عنواناً إلى مقطع رابط آمن (يحافظ على الأحرف العربية).
+ * يستخدم لبناء روابط `/{section}/{slug}-{id}` وللتحقق من الرابط القانوني (canonical).
+ */
+export function slugify(title: string): string {
+	return title
+		.trim()
+		// eslint-disable-next-line no-control-regex
+		.replace(/[\u0000-\u001f\\/?#%&"'<>]/g, ' ')
+		.replace(/\s+/g, '-')
+		.replace(/-+/g, '-')
+		.replace(/^-|-$/g, '');
+}
+
+/**
+ * يفكك مقطع رابط تفاصيل بصيغة `{slug}-{id}`.
+ * موجه الـ SvelteKit يقسم `[title]-[id]` عند أول شرطة، لذا عند احتواء العنوان على
+ * شرطات يجب إعادة تجميع المقطع واستخراج الرقم من نهايته.
+ */
+export function parseDetailParams(title: string, id: string): { id: number; slug: string } {
+	const full = `${title}-${id}`;
+	const match = full.match(/^(.*)-(\d+)$/);
+	if (!match) return { id: NaN, slug: full };
+	return { id: Number(match[2]), slug: match[1] };
+}
+
+/** يقص النص لوصف ميتا (~155 حرفاً) مع إزالة أسطر جديدة وإضافة "…" عند القص. */
+export function truncateForMeta(text: string, maxLength: number = 155): string {
+	const clean = text.replace(/\s+/g, ' ').trim();
+	if (clean.length <= maxLength) return clean;
+	return clean.slice(0, maxLength - 1).trimEnd() + '…';
+}
+
 export const formatCurrency = (
 	amount: number | null,
 	locale: string = 'ar-OM',

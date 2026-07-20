@@ -6,20 +6,16 @@
 	// $bindable() allows the parent to open/close this drawer dynamically
 	let { open = $bindable(false) } = $props();
 
-	// Navigation links data
-	// <li><a href="/">{$_('header.projects')}</a></li>
-	// <li><a href="#serveice">{$_('header.services')}</a></li>
-	// <li><a href="#about">{$_('header.about')}</a></li>
-	// <li><a href="#blog">{$_('header.blog')}</a></li>
-	// <li><a href="#contact">{$_('header.contact')}</a></li>
-	const navLinks = [
-		{ name: $_('header.projects'), href: '/' },
-		{ name: 'الوحدات', href: '/units' },
-		{ name: $_('header.services'), href: '/services' },
-		{ name: $_('header.about'), href: '/about' },
-		{ name: $_('header.blog'), href: '/blog' },
-		{ name: $_('header.contact'), href: '/contact' }
-	];
+	// روابط التنقّل
+	const navLinks = $derived([
+		{ name: $_('header.home'), href: '/' },
+		{ name: $_('header.projects'), href: '/projects' },
+		{ name: $_('header.units'), href: '/units' },
+		{ name: $_('header.blog'), href: '/blogs' },
+		{ name: $_('header.services'), href: '/#serveice' },
+		{ name: $_('header.about'), href: '/#about' },
+		{ name: $_('header.contact'), href: '/#contact' }
+	]);
 </script>
 
 {#if open}

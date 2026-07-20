@@ -239,12 +239,52 @@ export const unitTranslations = sqliteTable(
 	]
 );
 
+export const blogs = sqliteTable('blogs', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	category: text('category', {
+		enum: ['real_estate_tips', 'market_news', 'development', 'investment', 'company_news']
+	})
+		.notNull()
+		.default('real_estate_tips'),
+	// المقالات تُنشأ كمسودات غير منشورة (بعكس المشاريع والوحدات)
+	isPublished: integer('is_published', { mode: 'boolean' }).default(false).notNull(),
+	// يُحدد عند أول نشر فقط ولا يُعاد تعيينه بعد ذلك
+	publishedAt: integer('published_at', { mode: 'timestamp_ms' }),
+	createdAt: integer('created_at', { mode: 'timestamp_ms' })
+		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+		.notNull(),
+	updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+		.$onUpdate(() => /* @__PURE__ */ new Date())
+		.notNull()
+});
+
+export const blogTranslations = sqliteTable(
+	'blog_translations',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		blogId: integer('blog_id')
+			.notNull()
+			.references(() => blogs.id, { onDelete: 'cascade' }),
+		locale: text('locale').notNull(),
+		title: text('title').notNull(),
+		excerpt: text('excerpt').notNull(),
+		// نص المقال بصيغة Markdown، يُحوَّل إلى HTML آمن على الخادم
+		content: text('content').notNull()
+	},
+	(table) => [
+		index('blog_translations_blogId_idx').on(table.blogId),
+		index('blog_translations_locale_idx').on(table.locale)
+	]
+);
+
 export const media = sqliteTable(
 	'media',
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
 		projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
 		unitId: integer('unit_id').references(() => units.id, { onDelete: 'cascade' }),
+		blogId: integer('blog_id').references(() => blogs.id, { onDelete: 'cascade' }),
 		url: text('url').notNull(),
 		type: text('type', { enum: ['image', 'video'] })
 			.notNull()
@@ -255,7 +295,11 @@ export const media = sqliteTable(
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 			.notNull()
 	},
-	(table) => [index('media_projectId_idx').on(table.projectId), index('media_unitId_idx').on(table.unitId)]
+	(table) => [
+		index('media_projectId_idx').on(table.projectId),
+		index('media_unitId_idx').on(table.unitId),
+		index('media_blogId_idx').on(table.blogId)
+	]
 );
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -303,5 +347,21 @@ export const mediaRelations = relations(media, ({ one }) => ({
 	unit: one(units, {
 		fields: [media.unitId],
 		references: [units.id]
+	}),
+	blog: one(blogs, {
+		fields: [media.blogId],
+		references: [blogs.id]
+	})
+}));
+
+export const blogsRelations = relations(blogs, ({ many }) => ({
+	translations: many(blogTranslations),
+	media: many(media)
+}));
+
+export const blogTranslationsRelations = relations(blogTranslations, ({ one }) => ({
+	blog: one(blogs, {
+		fields: [blogTranslations.blogId],
+		references: [blogs.id]
 	})
 }));

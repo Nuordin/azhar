@@ -6,8 +6,11 @@
 	import { page } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 
 	let { data } = $props();
+
+	const canonical = $derived(new URL('/projects', page.url.origin).href);
 
 	// خيارات المدن مبنية من قيم قاعدة البيانات
 	const cityOptions = $derived([
@@ -52,7 +55,12 @@
 	}
 </script>
 
-<div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-10 lg:px-16 pt-10 pb-28">
+<Seo
+	title="المشاريع العقارية في سلطنة عمان"
+	description="استكشف المشاريع السكنية والتجارية في مختلف مدن سلطنة عمان، مع التصفية حسب المدينة وحالة البناء والسعر."
+	{canonical} />
+
+<div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-16 lg:px-32 pt-10 pb-28">
 	<!-- الترويسة -->
 	<header class="max-w-3xl mx-auto text-center mb-10">
 		<h1 class="text-4xl md:text-5xl font-black text-secondary-600 mb-3">مشاريعنا العقارية</h1>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MapPin, BedDouble, CalendarDays, Star, ChevronLeft, Building2, ImageOff } from '@lucide/svelte';
+	import { slugify } from '$lib/utils';
 
 	type CardProject = {
 		id: number;
@@ -46,7 +47,7 @@
 </script>
 
 <a
-	href="/projects/{project.title}-{project.id}"
+	href="/projects/{slugify(project.title ?? '')}-{project.id}"
 	class="group flex flex-col rounded-3xl bg-white ring-1 ring-secondary-700/10 shadow-sm
 	hover:shadow-2xl hover:shadow-secondary-700/20 hover:ring-secondary-700/15 hover:-translate-y-1.5
 	transition-all duration-300 overflow-hidden">

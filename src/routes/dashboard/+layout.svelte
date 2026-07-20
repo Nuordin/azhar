@@ -5,6 +5,11 @@
 	let { children } = $props();
 </script>
 
+<svelte:head>
+	<title>لوحة التحكم</title>
+	<meta name="robots" content="noindex, nofollow" />
+</svelte:head>
+
 <div class="dark bg-background text-foreground min-h-screen" dir="rtl">
 	<Sidebar.Provider>
 		<AppSidebar />
