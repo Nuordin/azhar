@@ -20,7 +20,7 @@
 </script>
 
 {#if projectList.length > 0}
-	<div class="px-4 md:px-16 lg:px-32 mt-16" dir="rtl">
+	<div class="px-4 md:px-16 lg:px-32 mt-16">
 		<h1 class="text-4xl md:text-5xl font-bold text-secondary-600 text-center lg:text-start w-full mb-4">
 			{$_('specialEstates.title')}
 		</h1>

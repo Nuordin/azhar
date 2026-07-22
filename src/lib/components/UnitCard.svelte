@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { MapPin, BedDouble, Bath, Grid2x2, CalendarDays, ChevronLeft, Building2, ImageOff } from '@lucide/svelte';
-	import { categoryTypeMap, unitTypesMap, offerMap, formatCurrency, slugify } from '$lib/utils';
+	import { _ } from 'svelte-i18n';
+	import { page } from '$app/state';
+	import { formatCurrency, slugify } from '$lib/utils';
+	import { localizedPath, DEFAULT_LOCALE } from '$lib/i18n/config';
 
 	type CardUnit = {
 		id: number;
@@ -23,19 +26,21 @@
 
 	let { unit }: { unit: CardUnit } = $props();
 
-	const statusMap: Record<string, { label: string; dot: string; classes: string }> = {
-		off_plan: { label: 'على المخطط', dot: 'bg-secondary-400', classes: 'bg-white/90 text-secondary-600' },
-		under_construction: { label: 'قيد الإنشاء', dot: 'bg-primary', classes: 'bg-white/90 text-primary-500' },
-		ready: { label: 'جاهز للتسليم', dot: 'bg-green-500', classes: 'bg-white/90 text-green-700' }
+	// أنماط شارة حالة البناء (النص يأتي من ملف الترجمة enums.construction)
+	const statusStyle: Record<string, { dot: string; classes: string }> = {
+		off_plan: { dot: 'bg-secondary-400', classes: 'bg-white/90 text-secondary-600' },
+		under_construction: { dot: 'bg-primary', classes: 'bg-white/90 text-primary-500' },
+		ready: { dot: 'bg-green-500', classes: 'bg-white/90 text-green-700' }
 	};
 
-	let status = $derived(unit.constructionStatus ? statusMap[unit.constructionStatus] : null);
+	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
+	let status = $derived(unit.constructionStatus ? statusStyle[unit.constructionStatus] : null);
 	let completion = $derived(unit.completionPercentage != null ? Number(unit.completionPercentage) : null);
 	let deliveryYear = $derived(unit.deliveryDate ? new Date(unit.deliveryDate).getFullYear() : null);
 </script>
 
 <a
-	href="/units/{slugify(unit.title ?? '')}-{unit.id}"
+	href={localizedPath(lang, 'units', slugify(unit.title ?? ''), unit.id)}
 	class="group flex flex-col rounded-3xl bg-white ring-1 ring-secondary-700/10 shadow-sm
 	hover:shadow-2xl hover:shadow-secondary-700/20 hover:ring-secondary-700/15 hover:-translate-y-1.5
 	transition-all duration-300 overflow-hidden">
@@ -50,7 +55,7 @@
 		{:else}
 			<div class="w-full h-full flex flex-col items-center justify-center gap-2 text-secondary-400">
 				<ImageOff class="w-8 h-8" />
-				<span class="text-xs font-bold">لا توجد صورة</span>
+				<span class="text-xs font-bold">{$_('common.no_image')}</span>
 			</div>
 		{/if}
 		<div class="absolute inset-0 bg-linear-to-t from-secondary-700/80 via-secondary-700/10 to-transparent"></div>
@@ -66,15 +71,15 @@
 						{/if}
 						<span class="relative inline-flex w-2 h-2 rounded-full {status.dot}"></span>
 					</span>
-					{status.label}
+					{$_(`enums.construction.${unit.constructionStatus}`)}
 				</span>
 			{:else}
 				<span></span>
 			{/if}
-			{#if unit.offerType && offerMap[unit.offerType]}
+			{#if unit.offerType}
 				<span
 					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-black bg-primary text-white shadow-sm">
-					{offerMap[unit.offerType]}
+					{$_(`enums.offer.${unit.offerType}`)}
 				</span>
 			{/if}
 		</div>
@@ -101,36 +106,36 @@
 		{/if}
 
 		<div class="flex flex-wrap gap-1.5 text-[11px] font-bold text-secondary-600">
-			{#if unit.category && categoryTypeMap[unit.category]}
+			{#if unit.category}
 				<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10"
-					>{categoryTypeMap[unit.category]}</span>
+					>{$_(`enums.category.${unit.category}`)}</span>
 			{/if}
-			{#if unit.type && unitTypesMap[unit.type]}
+			{#if unit.type}
 				<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10"
-					>{unitTypesMap[unit.type]}</span>
+					>{$_(`enums.unit_type.${unit.type}`)}</span>
 			{/if}
 			{#if (unit.bedrooms ?? 0) > 0}
 				<span
 					class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
-					<BedDouble class="w-3.5 h-3.5" />{unit.bedrooms} غرف
+					<BedDouble class="w-3.5 h-3.5" />{$_('common.bedrooms', { values: { count: unit.bedrooms } })}
 				</span>
 			{/if}
 			{#if (unit.bathrooms ?? 0) > 0}
 				<span
 					class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
-					<Bath class="w-3.5 h-3.5" />{unit.bathrooms} حمام
+					<Bath class="w-3.5 h-3.5" />{$_('common.bathrooms', { values: { count: unit.bathrooms } })}
 				</span>
 			{/if}
 			{#if unit.area}
 				<span
 					class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
-					<Grid2x2 class="w-3.5 h-3.5" />{unit.area} م²
+					<Grid2x2 class="w-3.5 h-3.5" />{$_('common.area', { values: { area: unit.area } })}
 				</span>
 			{/if}
 			{#if deliveryYear}
 				<span
 					class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
-					<CalendarDays class="w-3.5 h-3.5" />تسليم {deliveryYear}
+					<CalendarDays class="w-3.5 h-3.5" />{$_('common.delivery', { values: { year: deliveryYear } })}
 				</span>
 			{/if}
 		</div>
@@ -138,7 +143,7 @@
 		{#if completion != null && unit.constructionStatus !== 'ready'}
 			<div>
 				<div class="flex items-center justify-between text-[11px] font-bold text-secondary-500 mb-1.5">
-					<span>نسبة الإنجاز</span>
+					<span>{$_('common.progress')}</span>
 					<span class="text-secondary-700">{completion}%</span>
 				</div>
 				<div class="h-1.5 w-full rounded-full bg-secondary-200/70 overflow-hidden">
@@ -155,17 +160,17 @@
 			{#if unit.price != null}
 				<div class="leading-none">
 					<span class="block text-[10px] font-bold text-secondary-400 mb-1">
-						{unit.offerType === 'rent' ? 'الإيجار' : 'يبدأ من'}
+						{unit.offerType === 'rent' ? $_('common.rent_label') : $_('common.starts_from')}
 					</span>
-					<span class="text-xl font-black text-secondary-700">{formatCurrency(unit.price)}</span>
+					<span class="text-xl font-black text-secondary-700">{formatCurrency(unit.price, lang)}</span>
 				</div>
 			{:else}
-				<span class="text-[13px] font-bold text-secondary-400">تواصل معنا للسعر</span>
+				<span class="text-[13px] font-bold text-secondary-400">{$_('common.contact_for_price')}</span>
 			{/if}
 			<span
 				class="inline-flex items-center gap-1 text-[13px] font-black text-primary
 				group-hover:gap-2.5 transition-all duration-300">
-				عرض التفاصيل <ChevronLeft class="w-4 h-4" />
+				{$_('common.view_details')} <ChevronLeft class="w-4 h-4" />
 			</span>
 		</div>
 	</div>

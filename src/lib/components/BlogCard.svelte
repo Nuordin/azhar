@@ -12,16 +12,19 @@
 <script lang="ts">
 	import { CalendarDays, ChevronLeft, ImageOff } from '@lucide/svelte';
 	import { _ } from 'svelte-i18n';
+	import { page } from '$app/state';
 	import { slugify } from '$lib/utils';
+	import { localizedPath, DEFAULT_LOCALE } from '$lib/i18n/config';
 
 	let { blog }: { blog: BlogCardData } = $props();
 
 	const formatDate = (date: Date | string | null) => {
 		if (!date) return '';
-		return new Intl.DateTimeFormat('ar', { dateStyle: 'medium' }).format(new Date(date));
+		const locale = page.params.lang ?? DEFAULT_LOCALE;
+		return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(date));
 	};
 
-	const href = $derived(`/blogs/${slugify(blog.title ?? '')}-${blog.id}`);
+	const href = $derived(localizedPath(page.params.lang ?? DEFAULT_LOCALE, 'blogs', slugify(blog.title ?? ''), blog.id));
 </script>
 
 <a {href} class="w-full max-w-sm border border-gray-700/20 shadow-md p-4 rounded-3xl flex flex-col hover:shadow-lg transition-shadow">
@@ -32,7 +35,7 @@
 		{:else}
 			<div class="flex flex-col items-center justify-center gap-2 text-secondary-400">
 				<ImageOff class="w-8 h-8" />
-				<span class="text-sm font-bold">لا توجد صورة</span>
+				<span class="text-sm font-bold">{$_('common.no_image')}</span>
 			</div>
 		{/if}
 		{#if blog.category}

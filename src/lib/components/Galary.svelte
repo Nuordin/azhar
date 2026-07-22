@@ -43,7 +43,6 @@
 {#if open}
 	<div
 		class="fixed inset-0 z-50 flex flex-col bg-secondary-700/90 backdrop-blur-sm"
-		dir="rtl"
 		transition:fade={{ duration: 200 }}>
 		<!-- الشريط العلوي: العدّاد وزر الإغلاق -->
 		<div class="flex items-center justify-between p-4 text-secondary-100 shrink-0">

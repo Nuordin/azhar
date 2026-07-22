@@ -7,20 +7,40 @@
 	import Seo from '$lib/components/Seo.svelte';
 	import { SITE_NAME } from '$lib/config';
 	import { slugify, truncateForMeta } from '$lib/utils';
+	import { DEFAULT_LOCALE, localizedPath, sectionListPath, localeHome } from '$lib/i18n/config';
 
 	let { data } = $props();
 
 	let showContact = $state(false);
 
+	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
 	const title = $derived(data.translation?.title ?? SITE_NAME);
 	const description = $derived(truncateForMeta(data.translation?.excerpt ?? ''));
-	const canonical = $derived(new URL(`/blogs/${encodeURIComponent(slugify(title))}-${data.blog.id}`, page.url.origin).href);
+	const canonical = $derived(new URL(localizedPath(lang, 'blogs', slugify(title), data.blog.id), page.url.origin).href);
 	const cover = $derived(data.media.find((m) => m.type === 'image') ?? null);
 	const coverUrl = $derived(cover ? new URL(cover.url, page.url.origin).href : undefined);
+	const alternates = $derived([
+		...data.altLocales.map((a) => ({
+			hreflang: a.code,
+			href: new URL(localizedPath(a.code, 'blogs', a.slug, data.blog.id), page.url.origin).href
+		})),
+		{
+			hreflang: 'x-default',
+			href: new URL(
+				localizedPath(
+					DEFAULT_LOCALE,
+					'blogs',
+					data.altLocales.find((a) => a.code === DEFAULT_LOCALE)?.slug ?? slugify(title),
+					data.blog.id
+				),
+				page.url.origin
+			).href
+		}
+	]);
 
 	const formatDate = (date: Date | string | null) => {
 		if (!date) return '';
-		return new Intl.DateTimeFormat('ar', { dateStyle: 'long' }).format(new Date(date));
+		return new Intl.DateTimeFormat(lang, { dateStyle: 'long' }).format(new Date(date));
 	};
 
 	const jsonLd = $derived([
@@ -39,17 +59,17 @@
 			'@context': 'https://schema.org',
 			'@type': 'BreadcrumbList',
 			itemListElement: [
-				{ '@type': 'ListItem', position: 1, name: 'الرئيسية', item: new URL('/', page.url.origin).href },
-				{ '@type': 'ListItem', position: 2, name: 'المدونة', item: new URL('/blogs', page.url.origin).href },
+				{ '@type': 'ListItem', position: 1, name: $_('common.breadcrumb_home'), item: new URL(localeHome(lang), page.url.origin).href },
+				{ '@type': 'ListItem', position: 2, name: $_('blog_detail.breadcrumb'), item: new URL(sectionListPath(lang, 'blogs'), page.url.origin).href },
 				{ '@type': 'ListItem', position: 3, name: title, item: canonical }
 			]
 		}
 	]);
 </script>
 
-<Seo {title} {description} {canonical} ogImage={coverUrl} ogType="article" {jsonLd} />
+<Seo {title} {description} {canonical} ogImage={coverUrl} ogType="article" {jsonLd} {alternates} ogLocale={`${lang}_OM`} />
 
-<div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-16 lg:px-32 pt-10 pb-28">
+<div class="font-aljazeera min-h-screen px-4 md:px-16 lg:px-32 pt-10 pb-28">
 	<article class="max-w-3xl mx-auto">
 		{#if cover}
 			<img
@@ -87,7 +107,7 @@
 		<button
 			class="py-2 px-10 text-primary border border-primary font-bold rounded-xl"
 			onclick={() => (showContact = true)}>
-			تواصل معنا
+			{$_('common.contact_us')}
 		</button>
 	</div>
 

@@ -3,10 +3,10 @@ import { blogs, blogTranslations, media } from '$lib/server/db/schema';
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-const LOCALE = 'ar';
 const BLOG_CATEGORIES = ['real_estate_tips', 'market_news', 'development', 'investment', 'company_news'];
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, params }) => {
+	const LOCALE = params.lang;
 	const limit = 9;
 	const page = Number(url.searchParams.get('page')) || 1;
 	const offset = (page - 1) * limit;
@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				image: media.url
 			})
 			.from(blogs)
-			.leftJoin(blogTranslations, and(eq(blogs.id, blogTranslations.blogId), eq(blogTranslations.locale, LOCALE)))
+			.innerJoin(blogTranslations, and(eq(blogs.id, blogTranslations.blogId), eq(blogTranslations.locale, LOCALE)))
 			.leftJoin(media, and(eq(blogs.id, media.blogId), eq(media.isMain, true)))
 			.where(and(...conditions))
 			.orderBy(desc(blogs.publishedAt), desc(blogs.createdAt))

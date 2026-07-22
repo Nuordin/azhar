@@ -18,7 +18,7 @@
 	};
 </script>
 
-<div dir="rtl" class="w-full">
+<div class="w-full">
 	<div class="flex items-center font-inter text-xs">
 		{#each steps as step (step)}
 			{@const reached = clamped >= step}

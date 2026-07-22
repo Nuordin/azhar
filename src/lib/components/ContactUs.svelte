@@ -20,7 +20,7 @@
 </script>
 
 <Sheet bind:isOpen={open} class="h-auto max-h-[90vh] pb-6">
-	<div dir="rtl" class="flex flex-col gap-5 p-6">
+	<div class="flex flex-col gap-5 p-6">
 		<!-- الترويسة -->
 		<div class="flex items-start justify-between">
 			<div>

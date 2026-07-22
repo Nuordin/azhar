@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { _ } from 'svelte-i18n';
 	import Icons from '$lib/components/Icons.svelte';
 	import ContactUs from '$lib/components/ContactUs.svelte';
 	import BookViewing from '$lib/components/BookViewing.svelte';
@@ -7,17 +8,8 @@
 	import Galary from '$lib/components/Galary.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { SITE_NAME, DEFAULT_DESCRIPTION } from '$lib/config';
-	import {
-		cn,
-		formatCurrency,
-		unitTypesMap,
-		constructionMap,
-		ownershipTypeMap,
-		unitStatusMap,
-		offerMap,
-		slugify,
-		truncateForMeta
-	} from '$lib/utils';
+	import { cn, formatCurrency, slugify, truncateForMeta } from '$lib/utils';
+	import { DEFAULT_LOCALE, localizedPath, sectionListPath, localeHome } from '$lib/i18n/config';
 	import {
 		Bath,
 		BedDouble,
@@ -42,12 +34,33 @@
 	const images = $derived(data.media.filter((m) => m.type === 'image').map((m) => m.url));
 
 	// بيانات محركات البحث
-	const seoTitle = $derived(t?.title ? `${t.title} — ${t.locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME);
+	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
+	const seoTitle = $derived(
+		t?.title ? `${t.title} — ${t.locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME
+	);
 	const seoDescription = $derived(t?.description ? truncateForMeta(t.description) : DEFAULT_DESCRIPTION);
 	const canonical = $derived(
-		new URL(`/units/${encodeURIComponent(slugify(t?.title ?? ''))}-${unit.id}`, page.url.origin).href
+		new URL(localizedPath(lang, 'units', slugify(t?.title ?? ''), unit.id), page.url.origin).href
 	);
 	const ogImage = $derived(images.length > 0 ? new URL(images[0], page.url.origin).href : undefined);
+	const alternates = $derived([
+		...data.altLocales.map((a) => ({
+			hreflang: a.code,
+			href: new URL(localizedPath(a.code, 'units', a.slug, unit.id), page.url.origin).href
+		})),
+		{
+			hreflang: 'x-default',
+			href: new URL(
+				localizedPath(
+					DEFAULT_LOCALE,
+					'units',
+					data.altLocales.find((a) => a.code === DEFAULT_LOCALE)?.slug ?? slugify(t?.title ?? ''),
+					unit.id
+				),
+				page.url.origin
+			).href
+		}
+	]);
 	const jsonLd = $derived([
 		{
 			'@context': 'https://schema.org',
@@ -55,17 +68,14 @@
 			name: t?.title ?? SITE_NAME,
 			...(t?.description ? { description: truncateForMeta(t.description) } : {}),
 			url: canonical,
-			...(images.length > 0
-				? { image: images.slice(0, 5).map((url) => new URL(url, page.url.origin).href) }
-				: {}),
+			...(images.length > 0 ? { image: images.slice(0, 5).map((url) => new URL(url, page.url.origin).href) } : {}),
 			...(unit.price
 				? {
 						offers: {
 							'@type': 'Offer',
 							price: unit.price,
 							priceCurrency: 'OMR',
-							availability:
-								unit.status === 'available' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut'
+							availability: unit.status === 'available' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut'
 						}
 					}
 				: {})
@@ -74,8 +84,18 @@
 			'@context': 'https://schema.org',
 			'@type': 'BreadcrumbList',
 			itemListElement: [
-				{ '@type': 'ListItem', position: 1, name: 'الرئيسية', item: new URL('/', page.url.origin).href },
-				{ '@type': 'ListItem', position: 2, name: 'الوحدات', item: new URL('/units', page.url.origin).href },
+				{
+					'@type': 'ListItem',
+					position: 1,
+					name: $_('common.breadcrumb_home'),
+					item: new URL(localeHome(lang), page.url.origin).href
+				},
+				{
+					'@type': 'ListItem',
+					position: 2,
+					name: $_('unit_detail.breadcrumb'),
+					item: new URL(sectionListPath(lang, 'units'), page.url.origin).href
+				},
 				{ '@type': 'ListItem', position: 3, name: t?.title ?? '', item: canonical }
 			]
 		}
@@ -84,7 +104,7 @@
 	const paymentPlans = $derived((t?.paymentPlans as Detail[] | null) ?? []);
 	const extraDetails = $derived((t?.details as Detail[] | null) ?? []);
 
-	const deliveryDate = $derived(unit.deliveryDate ? new Date(unit.deliveryDate).toLocaleDateString('ar-OM') : '—');
+	const deliveryDate = $derived(unit.deliveryDate ? new Date(unit.deliveryDate).toLocaleDateString(lang) : '—');
 	const completion = $derived(unit.completionPercentage != null ? Number(unit.completionPercentage) : 0);
 
 	let showContact = $state(false);
@@ -97,23 +117,30 @@
 	};
 </script>
 
-<Seo title={seoTitle} description={seoDescription} {canonical} {ogImage} {jsonLd} />
+<Seo
+	title={seoTitle}
+	description={seoDescription}
+	{canonical}
+	{ogImage}
+	{jsonLd}
+	{alternates}
+	ogLocale={`${lang}_OM`} />
 
-<div class="w-full px-4 py-8 md:px-16 lg:px-32" dir="rtl">
+<div class="w-full px-4 py-8 md:px-16 lg:px-32">
 	<div class="flex justify-between items-center gap-4">
 		<div>
-			<h1 class="text-2xl font-bold text-secondary-600">{t?.title ?? 'وحدة'}</h1>
-			{#if unit.ownershipType && ownershipTypeMap[unit.ownershipType]}
+			<h1 class="text-2xl font-bold text-secondary-600">{t?.title ?? $_('unit_detail.fallback_title')}</h1>
+			{#if unit.ownershipType}
 				<h1 class="text-xs font-bold text-black bg-primary/60 inline px-2 pt-px rounded-full">
-					{ownershipTypeMap[unit.ownershipType]}
+					{$_(`enums.ownership.${unit.ownershipType}`)}
 				</h1>
 			{/if}
 		</div>
-		<div class="text-left">
-			{#if unit.offerType && offerMap[unit.offerType]}
-				<span class="block text-xs text-secondary-500">{offerMap[unit.offerType]}</span>
+		<div class="text-start">
+			{#if unit.offerType}
+				<span class="block text-xs text-secondary-500">{$_(`enums.offer.${unit.offerType}`)}</span>
 			{/if}
-			<h1 class="text-secondary-600 text-2xl font-bold">{formatCurrency(unit.price)}</h1>
+			<h1 class="text-secondary-600 text-2xl font-bold">{formatCurrency(unit.price, lang)}</h1>
 		</div>
 	</div>
 
@@ -130,7 +157,12 @@
 					<button
 						onclick={() => openGalary(images[1])}
 						class="flex-1 min-h-0 rounded-xl shadow-lg overflow-hidden relative">
-						<img src={images[1]} alt={t?.title ?? ''} loading="lazy" decoding="async" class="w-full h-full object-cover" />
+						<img
+							src={images[1]}
+							alt={t?.title ?? ''}
+							loading="lazy"
+							decoding="async"
+							class="w-full h-full object-cover" />
 						{#if images.length > 2}
 							<div class="absolute inset-0 flex items-center justify-center bg-black/60 text-secondary-100">
 								<Images size={48} />
@@ -140,7 +172,12 @@
 				{/if}
 				{#if images[2]}
 					<button onclick={() => openGalary(images[2])} class="flex-1 min-h-0 rounded-xl shadow-lg overflow-hidden">
-						<img src={images[2]} alt={t?.title ?? ''} loading="lazy" decoding="async" class="w-full h-full object-cover" />
+						<img
+							src={images[2]}
+							alt={t?.title ?? ''}
+							loading="lazy"
+							decoding="async"
+							class="w-full h-full object-cover" />
 					</button>
 				{/if}
 			</div>
@@ -149,7 +186,7 @@
 		<div
 			class="mt-4 w-full h-64 rounded-xl bg-secondary-200/40 flex flex-col items-center justify-center gap-2 text-secondary-400">
 			<ImageOff class="w-10 h-10" />
-			<span class="text-sm font-bold">لا توجد صور</span>
+			<span class="text-sm font-bold">{$_('common.no_images')}</span>
 		</div>
 	{/if}
 
@@ -158,24 +195,26 @@
 		<ul class="flex w-full h-full justify-between">
 			<li class="flex flex-col justify-center items-center text-secondary-700">
 				<Building2 class="text-secondary-500" />
-				<span class="text-xs">نوع الوحدة</span>
-				<span class="text-xs">{unit.type ? (unitTypesMap[unit.type] ?? unit.type) : '—'}</span>
+				<span class="text-xs">{$_('unit_detail.unit_type')}</span>
+				<span class="text-xs">{unit.type ? $_(`enums.unit_type.${unit.type}`) : '—'}</span>
 			</li>
 			<span class="border border-gray-500/15 h-8 m-auto"></span>
 			<li class="flex flex-col justify-center items-center">
 				<KeyRound class="text-secondary-500" />
-				<span class="text-xs">تاريخ التسليم</span><span class="text-xs">{deliveryDate}</span>
+				<span class="text-xs">{$_('unit_detail.delivery_date')}</span><span class="text-xs">{deliveryDate}</span>
 			</li>
 			<span class="border border-gray-500/15 h-8 m-auto"></span>
 			<li class="flex flex-col justify-center items-center">
 				<Grid2x2 class="text-secondary-500" />
-				<span class="text-xs">المساحة</span><span class="text-xs">{unit.area ?? '—'} م²</span>
+				<span class="text-xs">{$_('unit_detail.area')}</span><span class="text-xs"
+					>{unit.area ?? '—'} {$_('common.area_unit')}</span>
 			</li>
 			<span class="border border-gray-500/15 h-8 m-auto"></span>
 			<li class="flex flex-col justify-center items-center">
 				<Construction class="text-secondary-500" />
-				<span class="text-xs">حالة البناء</span>
-				<span class="text-xs">{unit.constructionStatus ? constructionMap[unit.constructionStatus] : '—'}</span>
+				<span class="text-xs">{$_('unit_detail.construction_status')}</span>
+				<span class="text-xs"
+					>{unit.constructionStatus ? $_(`enums.construction.${unit.constructionStatus}`) : '—'}</span>
 			</li>
 		</ul>
 	</div>
@@ -184,12 +223,12 @@
 	<div class="mt-4 flex flex-wrap gap-3 text-sm font-bold text-secondary-600">
 		{#if (unit.bedrooms ?? 0) > 0}
 			<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary-100">
-				<BedDouble size={16} />{unit.bedrooms} غرف
+				<BedDouble size={16} />{$_('common.bedrooms', { values: { count: unit.bedrooms } })}
 			</span>
 		{/if}
 		{#if (unit.bathrooms ?? 0) > 0}
 			<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary-100">
-				<Bath size={16} />{unit.bathrooms} حمام
+				<Bath size={16} />{$_('common.bathrooms', { values: { count: unit.bathrooms } })}
 			</span>
 		{/if}
 		{#if t?.locationName}
@@ -202,7 +241,7 @@
 	<!-- نسبة الإنجاز -->
 	{#if unit.constructionStatus !== 'ready'}
 		<div class="mt-8">
-			<h1 class="mb-4 text-lg text-secondary-600">نسبة إنجاز الوحدة</h1>
+			<h1 class="mb-4 text-lg text-secondary-600">{$_('unit_detail.completion_title')}</h1>
 			<CompletionProgress value={completion} />
 		</div>
 	{/if}
@@ -210,7 +249,7 @@
 	<!-- الوصف -->
 	{#if t?.description}
 		<div class="mt-8">
-			<h1 class="mb-4 text-2xl font-bold text-secondary-600">عن الوحدة</h1>
+			<h1 class="mb-4 text-2xl font-bold text-secondary-600">{$_('unit_detail.about')}</h1>
 			<p class="leading-8">{t.description}</p>
 		</div>
 	{/if}
@@ -218,7 +257,7 @@
 	<!-- الخدمات والمميزات -->
 	{#if amenities.length > 0}
 		<div class="mt-8 w-full">
-			<h1 class="text-2xl font-bold text-secondary-600 mb-8">الخدمات والمميزات</h1>
+			<h1 class="text-2xl font-bold text-secondary-600 mb-8">{$_('common.amenities')}</h1>
 			<div class="flex flex-wrap gap-4 justify-start items-center">
 				{#each amenities as amenity (amenity.title)}
 					<div class="flex items-center gap-4 p-2 shadow rounded-lg">
@@ -232,15 +271,21 @@
 
 	<!-- تفاصيل الوحدة -->
 	<div class="mt-8 w-full">
-		<h1 class="mb-4 text-2xl font-bold text-secondary-600">تفاصيل الوحدة</h1>
+		<h1 class="mb-4 text-2xl font-bold text-secondary-600">{$_('unit_detail.details')}</h1>
 		<div class="grid grid-cols-1 gap-2 w-full">
 			{#if t?.developer}
-				{@render detailRow('المطور', t.developer)}
+				{@render detailRow($_('unit_detail.developer'), t.developer)}
 			{/if}
-			{@render detailRow('حالة البناء', unit.constructionStatus ? constructionMap[unit.constructionStatus] : '—')}
-			{@render detailRow('تاريخ التسليم', deliveryDate)}
-			{@render detailRow('نوع التملك', unit.ownershipType ? ownershipTypeMap[unit.ownershipType] : '—')}
-			{@render detailRow('حالة الوحدة', unit.status ? unitStatusMap[unit.status] : '—')}
+			{@render detailRow(
+				$_('unit_detail.construction_status'),
+				unit.constructionStatus ? $_(`enums.construction.${unit.constructionStatus}`) : '—'
+			)}
+			{@render detailRow($_('unit_detail.delivery_date'), deliveryDate)}
+			{@render detailRow(
+				$_('unit_detail.ownership_type'),
+				unit.ownershipType ? $_(`enums.ownership.${unit.ownershipType}`) : '—'
+			)}
+			{@render detailRow($_('unit_detail.unit_status'), unit.status ? $_(`enums.unit_status.${unit.status}`) : '—')}
 			{#each extraDetails as d (d.title)}
 				{@render detailRow(d.title, d.description)}
 			{/each}
@@ -250,7 +295,7 @@
 	<!-- خطط الدفع -->
 	{#if paymentPlans.length > 0}
 		<div class="mt-8 w-full">
-			<h1 class="mb-4 text-2xl font-bold text-secondary-600">خطط الدفع</h1>
+			<h1 class="mb-4 text-2xl font-bold text-secondary-600">{$_('common.payment_plans')}</h1>
 			<div class="grid grid-cols-1 gap-2 w-full">
 				{#each paymentPlans as plan (plan.title)}
 					{@render detailRow(plan.title, plan.description)}
@@ -265,10 +310,10 @@
 		<button
 			class="py-2 text-primary border border-primary font-bold rounded-xl grow"
 			onclick={() => (showContact = true)}>
-			تواصل معنا
+			{$_('common.contact_us')}
 		</button>
 		<button class="py-2 bg-primary text-secondary-100 font-bold rounded-xl grow" onclick={() => (showBooking = true)}>
-			حجز معاينة
+			{$_('unit_detail.book_viewing')}
 		</button>
 	</div>
 

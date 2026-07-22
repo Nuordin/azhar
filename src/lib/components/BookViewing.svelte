@@ -5,6 +5,9 @@
 	import Sheet from '$lib/components/Sheet.svelte';
 	import Whatsapp from '$lib/components/Icons/Whatsapp.svelte';
 	import { whatsappLink } from '$lib/config';
+	import { getDirection } from '$lib/i18n/direction';
+
+	const dir = getDirection();
 
 	type Props = {
 		open: boolean;
@@ -68,7 +71,7 @@
 </script>
 
 <Sheet bind:isOpen={open} class="h-auto max-h-[90vh] pb-6">
-	<div dir="rtl" class="flex flex-col gap-5 p-6">
+	<div class="flex flex-col gap-5 p-6">
 		<!-- الترويسة -->
 		<div class="flex items-start justify-between">
 			<div>
@@ -141,6 +144,7 @@
 		</Select.Trigger>
 		<Select.Portal>
 			<Select.Content
+				dir={$dir}
 				sideOffset={6}
 				class="z-[70] max-h-56 w-[var(--bits-select-anchor-width)] overflow-y-auto rounded-xl border border-secondary-600/15 bg-white p-1 shadow-xl">
 				<Select.Viewport>

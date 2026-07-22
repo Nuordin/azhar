@@ -9,9 +9,23 @@
 		ogType?: string;
 		jsonLd?: object | object[];
 		noindex?: boolean;
+		/** روابط بديلة لكل لغة (hreflang). أضف عنصر x-default عند الحاجة. */
+		alternates?: { hreflang: string; href: string }[];
+		/** لغة Open Graph، مثل ar_OM / en_OM */
+		ogLocale?: string;
 	}
 
-	let { title, description, canonical, ogImage, ogType = 'website', jsonLd, noindex = false }: Props = $props();
+	let {
+		title,
+		description,
+		canonical,
+		ogImage,
+		ogType = 'website',
+		jsonLd,
+		noindex = false,
+		alternates = [],
+		ogLocale = 'ar_OM'
+	}: Props = $props();
 
 	const fullTitle = $derived(title === SITE_NAME ? title : `${title} | ${SITE_NAME}`);
 	// منع كسر وسم السكربت أو حقن HTML من نصوص قادمة من قاعدة البيانات
@@ -29,6 +43,9 @@
 	<title>{fullTitle}</title>
 	<meta name="description" content={description} />
 	<link rel="canonical" href={canonical} />
+	{#each alternates as alt (alt.hreflang)}
+		<link rel="alternate" hreflang={alt.hreflang} href={alt.href} />
+	{/each}
 	{#if noindex}
 		<meta name="robots" content="noindex, nofollow" />
 	{/if}
@@ -37,7 +54,7 @@
 	<meta property="og:description" content={description} />
 	<meta property="og:url" content={canonical} />
 	<meta property="og:site_name" content={SITE_NAME} />
-	<meta property="og:locale" content="ar_OM" />
+	<meta property="og:locale" content={ogLocale} />
 	{#if ogImage}
 		<meta property="og:image" content={ogImage} />
 	{/if}

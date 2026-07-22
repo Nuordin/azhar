@@ -3,22 +3,34 @@
 	import { page } from '$app/state';
 	import BlogCard from '$lib/components/BlogCard.svelte';
 	import Seo from '$lib/components/Seo.svelte';
+	import { DEFAULT_LOCALE, sectionListPath } from '$lib/i18n/config';
 
 	let { data } = $props();
 
-	const canonical = $derived(new URL('/blogs', page.url.origin).href);
+	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
+	const canonical = $derived(new URL(sectionListPath(lang, 'blogs'), page.url.origin).href);
+	const alternates = $derived([
+		...page.data.availableLanguages.map((l: { code: string }) => ({
+			hreflang: l.code,
+			href: new URL(sectionListPath(l.code, 'blogs'), page.url.origin).href
+		})),
+		{ hreflang: 'x-default', href: new URL(sectionListPath(DEFAULT_LOCALE, 'blogs'), page.url.origin).href }
+	]);
 
 	function categoryHref(category: string | null) {
-		return category ? `/blogs?category=${category}` : '/blogs';
+		const base = sectionListPath(lang, 'blogs');
+		return category ? `${base}?category=${category}` : base;
 	}
 </script>
 
 <Seo
-	title="المدونة العقارية"
-	description="مقالات ونصائح عقارية، أخبار السوق العماني، وأدلة الاستثمار العقاري في سلطنة عمان."
-	{canonical} />
+	title={$_('blogs_page.seo_title')}
+	description={$_('blogs_page.seo_description')}
+	{canonical}
+	{alternates}
+	ogLocale={`${lang}_OM`} />
 
-<div dir="rtl" class="font-aljazeera min-h-screen px-4 md:px-16 lg:px-32 pt-10 pb-28">
+<div class="font-aljazeera min-h-screen px-4 md:px-16 lg:px-32 pt-10 pb-28">
 	<!-- الترويسة -->
 	<header class="max-w-3xl mx-auto text-center mb-10">
 		<h1 class="text-4xl md:text-5xl font-black text-secondary-600 mb-3">{$_('blogs.title')}</h1>
@@ -26,7 +38,7 @@
 	</header>
 
 	<!-- تصفية حسب التصنيف -->
-	<nav class="flex flex-wrap justify-center gap-2 mb-10" aria-label="تصنيفات المدونة">
+	<nav class="flex flex-wrap justify-center gap-2 mb-10" aria-label={$_('blogs_page.categories_aria')}>
 		<a
 			href={categoryHref(null)}
 			class="px-4 py-1.5 rounded-full border text-sm transition-colors {!data.category
@@ -53,22 +65,22 @@
 		</div>
 
 		{#if data.pagination.totalPages > 1}
-			<nav class="flex justify-center items-center gap-4 mt-12" aria-label="التنقل بين الصفحات">
+			<nav class="flex justify-center items-center gap-4 mt-12" aria-label={$_('blogs_page.pagination_aria')}>
 				{#if data.pagination.currentPage > 1}
 					<a
-						href="/blogs?page={data.pagination.currentPage - 1}{data.category ? `&category=${data.category}` : ''}"
+						href="{sectionListPath(lang, 'blogs')}?page={data.pagination.currentPage - 1}{data.category ? `&category=${data.category}` : ''}"
 						class="px-4 py-2 rounded-lg border border-secondary-300 text-secondary-600 hover:bg-secondary-100">
-						السابق
+						{$_('blogs_page.previous')}
 					</a>
 				{/if}
 				<span class="text-sm text-secondary-500">
-					صفحة {data.pagination.currentPage} من {data.pagination.totalPages}
+					{$_('blogs_page.page_of', { values: { current: data.pagination.currentPage, total: data.pagination.totalPages } })}
 				</span>
 				{#if data.pagination.currentPage < data.pagination.totalPages}
 					<a
-						href="/blogs?page={data.pagination.currentPage + 1}{data.category ? `&category=${data.category}` : ''}"
+						href="{sectionListPath(lang, 'blogs')}?page={data.pagination.currentPage + 1}{data.category ? `&category=${data.category}` : ''}"
 						class="px-4 py-2 rounded-lg border border-secondary-300 text-secondary-600 hover:bg-secondary-100">
-						التالي
+						{$_('blogs_page.next')}
 					</a>
 				{/if}
 			</nav>

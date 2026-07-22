@@ -3,11 +3,12 @@ import { projects, projectTranslations, units, unitTranslations, media } from '$
 import { and, asc, eq } from 'drizzle-orm';
 import { error, redirect } from '@sveltejs/kit';
 import { parseDetailParams, slugify } from '$lib/utils';
+import { localizedPath } from '$lib/i18n/config';
+import { getAvailableLocales } from '$lib/i18n/locales.server';
 import type { PageServerLoad } from './$types';
 
-const LOCALE = 'ar';
-
 export const load: PageServerLoad = async ({ params }) => {
+	const LOCALE = params.lang;
 	const { id, slug } = parseDetailParams(params.title, params.id);
 	if (!id || isNaN(id)) throw error(404, 'المشروع غير موجود');
 
@@ -22,12 +23,24 @@ export const load: PageServerLoad = async ({ params }) => {
 		.limit(1);
 
 	if (!row || !row.project.isPublished) throw error(404, 'المشروع غير موجود');
+	// لا توجد ترجمة بهذه اللغة ⇒ 404 (مثلاً /en قبل إضافة الترجمة الإنجليزية)
+	if (!row.translation) throw error(404, 'المشروع غير موجود');
 
 	// إعادة توجيه دائمة إلى الرابط القانوني عند اختلاف المقطع النصي
-	const canonicalSlug = slugify(row.translation?.title ?? '');
+	const canonicalSlug = slugify(row.translation.title);
 	if (canonicalSlug && slug !== canonicalSlug) {
-		throw redirect(301, `/projects/${encodeURIComponent(canonicalSlug)}-${id}`);
+		throw redirect(301, localizedPath(LOCALE, 'projects', canonicalSlug, id));
 	}
+
+	// اللغات التي تتوفر لها ترجمة (لبناء روابط hreflang البديلة)
+	const availableCodes = new Set(getAvailableLocales().map((l) => l.code));
+	const allTranslations = await db
+		.select({ locale: projectTranslations.locale, title: projectTranslations.title })
+		.from(projectTranslations)
+		.where(eq(projectTranslations.projectId, id));
+	const altLocales = allTranslations
+		.filter((t) => availableCodes.has(t.locale))
+		.map((t) => ({ code: t.locale, slug: slugify(t.title) }));
 
 	const projectMedia = await db.select().from(media).where(eq(media.projectId, id)).orderBy(asc(media.sortOrder));
 	const sortedMedia = [...projectMedia].sort((a, b) => Number(b.isMain) - Number(a.isMain));
@@ -55,6 +68,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		project: row.project,
 		translation: row.translation,
 		media: sortedMedia,
-		units: unitRows
+		units: unitRows,
+		altLocales
 	};
 };

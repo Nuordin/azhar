@@ -50,3 +50,14 @@ html {
 	font-family: aljazeera, inter, sans-serif;
 	scroll-behavior: smooth;
 }
+
+/* English (LTR) reads better without the heavy Arabic-tuned weights.
+   Gated on the root dir so Arabic keeps its bold/black design. Specificity
+   [attr] .class (0,2,0) beats a plain utility (0,1,0), so no !important needed. */
+[dir='ltr'] .font-black,
+[dir='ltr'] .font-extrabold,
+[dir='ltr'] .font-bold,
+[dir='ltr'] .font-semibold,
+[dir='ltr'] .font-medium {
+	font-weight: 400;
+}

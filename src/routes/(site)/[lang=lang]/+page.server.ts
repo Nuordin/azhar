@@ -3,8 +3,6 @@ import { blogs, blogTranslations, media, projects, projectTranslations } from '$
 import { and, asc, desc, eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-const LOCALE = 'ar';
-
 // شكل بطاقة المشروع كما يتوقعه ProjectCard
 const projectCardSelect = {
 	id: projects.id,
@@ -49,12 +47,13 @@ const shape = (rows: ProjectCardRow[]) =>
 		featured: p.isFeatured
 	}));
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ params }) => {
+	const LOCALE = params.lang;
 	// المشاريع المميّزة (تُعرض في قسم "عقارات مميزة")
 	const featuredRows: ProjectCardRow[] = await db
 		.select(projectCardSelect)
 		.from(projects)
-		.leftJoin(
+		.innerJoin(
 			projectTranslations,
 			and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
 		)
@@ -67,7 +66,7 @@ export const load: PageServerLoad = async () => {
 	const latestRows: ProjectCardRow[] = await db
 		.select(projectCardSelect)
 		.from(projects)
-		.leftJoin(
+		.innerJoin(
 			projectTranslations,
 			and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
 		)
@@ -87,7 +86,7 @@ export const load: PageServerLoad = async () => {
 			image: media.url
 		})
 		.from(blogs)
-		.leftJoin(blogTranslations, and(eq(blogs.id, blogTranslations.blogId), eq(blogTranslations.locale, LOCALE)))
+		.innerJoin(blogTranslations, and(eq(blogs.id, blogTranslations.blogId), eq(blogTranslations.locale, LOCALE)))
 		.leftJoin(media, and(eq(blogs.id, media.blogId), eq(media.isMain, true)))
 		.where(eq(blogs.isPublished, true))
 		.orderBy(desc(blogs.publishedAt), desc(blogs.createdAt))

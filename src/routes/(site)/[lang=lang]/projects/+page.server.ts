@@ -4,7 +4,6 @@ import { projects, projectTranslations, media } from '$lib/server/db/schema';
 import { and, asc, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-const LOCALE = 'ar';
 const LIMIT = 12;
 
 type ProjectRow = {
@@ -21,7 +20,8 @@ type ProjectRow = {
 	image: string | null;
 };
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, params }) => {
+	const LOCALE = params.lang;
 	const city = url.searchParams.get('city') ?? 'all';
 	const construction = url.searchParams.get('status') ?? 'all';
 	const priceRange = url.searchParams.get('price') ?? 'all';
@@ -76,7 +76,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				image: media.url
 			})
 			.from(projects)
-			.leftJoin(
+			.innerJoin(
 				projectTranslations,
 				and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
 			)

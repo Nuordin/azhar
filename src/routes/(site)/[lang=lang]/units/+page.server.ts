@@ -4,10 +4,10 @@ import { units, unitTranslations, media } from '$lib/server/db/schema';
 import { and, asc, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-const LOCALE = 'ar';
 const LIMIT = 12;
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, params }) => {
+	const LOCALE = params.lang;
 	const category = url.searchParams.get('category') ?? 'all';
 	const type = url.searchParams.get('type') ?? 'all';
 	const construction = url.searchParams.get('status') ?? 'all';
@@ -73,7 +73,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				image: media.url
 			})
 			.from(units)
-			.leftJoin(unitTranslations, and(eq(units.id, unitTranslations.unitId), eq(unitTranslations.locale, LOCALE)))
+			.innerJoin(unitTranslations, and(eq(units.id, unitTranslations.unitId), eq(unitTranslations.locale, LOCALE)))
 			.leftJoin(media, and(eq(units.id, media.unitId), eq(media.isMain, true)))
 			.where(where)
 			.orderBy(orderBy)

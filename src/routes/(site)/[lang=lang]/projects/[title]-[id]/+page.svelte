@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { _ } from 'svelte-i18n';
 	import Icons from '$lib/components/Icons.svelte';
 	import Sheet from '$lib/components/Sheet.svelte';
 	import ContactUs from '$lib/components/ContactUs.svelte';
@@ -7,7 +8,8 @@
 	import Galary from '$lib/components/Galary.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { SITE_NAME, DEFAULT_DESCRIPTION } from '$lib/config';
-	import { cn, formatCurrency, constructionMap, ownershipTypeMap, offerMap, slugify, truncateForMeta } from '$lib/utils';
+	import { cn, formatCurrency, slugify, truncateForMeta } from '$lib/utils';
+	import { DEFAULT_LOCALE, localizedPath, sectionListPath, localeHome } from '$lib/i18n/config';
 	import {
 		Bath,
 		BedDouble,
@@ -32,12 +34,33 @@
 	const images = $derived(data.media.filter((m) => m.type === 'image').map((m) => m.url));
 
 	// بيانات محركات البحث
-	const seoTitle = $derived(t?.title ? `${t.title} — ${t.locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME);
+	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
+	const seoTitle = $derived(
+		t?.title ? `${t.title} — ${t.locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME
+	);
 	const seoDescription = $derived(t?.description ? truncateForMeta(t.description) : DEFAULT_DESCRIPTION);
 	const canonical = $derived(
-		new URL(`/projects/${encodeURIComponent(slugify(t?.title ?? ''))}-${project.id}`, page.url.origin).href
+		new URL(localizedPath(lang, 'projects', slugify(t?.title ?? ''), project.id), page.url.origin).href
 	);
 	const ogImage = $derived(images.length > 0 ? new URL(images[0], page.url.origin).href : undefined);
+	const alternates = $derived([
+		...data.altLocales.map((a) => ({
+			hreflang: a.code,
+			href: new URL(localizedPath(a.code, 'projects', a.slug, project.id), page.url.origin).href
+		})),
+		{
+			hreflang: 'x-default',
+			href: new URL(
+				localizedPath(
+					DEFAULT_LOCALE,
+					'projects',
+					data.altLocales.find((a) => a.code === DEFAULT_LOCALE)?.slug ?? slugify(t?.title ?? ''),
+					project.id
+				),
+				page.url.origin
+			).href
+		}
+	]);
 	const jsonLd = $derived([
 		{
 			'@context': 'https://schema.org',
@@ -45,9 +68,7 @@
 			name: t?.title ?? SITE_NAME,
 			...(t?.description ? { description: truncateForMeta(t.description) } : {}),
 			url: canonical,
-			...(images.length > 0
-				? { image: images.slice(0, 5).map((url) => new URL(url, page.url.origin).href) }
-				: {}),
+			...(images.length > 0 ? { image: images.slice(0, 5).map((url) => new URL(url, page.url.origin).href) } : {}),
 			...(project.startingPrice
 				? { offers: { '@type': 'Offer', price: project.startingPrice, priceCurrency: 'OMR' } }
 				: {})
@@ -56,8 +77,18 @@
 			'@context': 'https://schema.org',
 			'@type': 'BreadcrumbList',
 			itemListElement: [
-				{ '@type': 'ListItem', position: 1, name: 'الرئيسية', item: new URL('/', page.url.origin).href },
-				{ '@type': 'ListItem', position: 2, name: 'المشاريع', item: new URL('/projects', page.url.origin).href },
+				{
+					'@type': 'ListItem',
+					position: 1,
+					name: $_('common.breadcrumb_home'),
+					item: new URL(localeHome(lang), page.url.origin).href
+				},
+				{
+					'@type': 'ListItem',
+					position: 2,
+					name: $_('project_detail.breadcrumb'),
+					item: new URL(sectionListPath(lang, 'projects'), page.url.origin).href
+				},
 				{ '@type': 'ListItem', position: 3, name: t?.title ?? '', item: canonical }
 			]
 		}
@@ -66,9 +97,7 @@
 	const paymentPlans = $derived((t?.paymentPlans as Detail[] | null) ?? []);
 	const extraDetails = $derived((t?.details as Detail[] | null) ?? []);
 
-	const deliveryDate = $derived(
-		project.deliveryDate ? new Date(project.deliveryDate).toLocaleDateString('ar-OM') : '—'
-	);
+	const deliveryDate = $derived(project.deliveryDate ? new Date(project.deliveryDate).toLocaleDateString(lang) : '—');
 	const completion = $derived(project.completionPercentage != null ? Number(project.completionPercentage) : 0);
 
 	let showSheet = $state(false);
@@ -81,20 +110,31 @@
 	};
 </script>
 
-<Seo title={seoTitle} description={seoDescription} {canonical} {ogImage} {jsonLd} />
+<Seo
+	title={seoTitle}
+	description={seoDescription}
+	{canonical}
+	{ogImage}
+	{jsonLd}
+	{alternates}
+	ogLocale={`${lang}_OM`} />
 
-<div class="w-full px-4 py-8 md:px-16 lg:px-32" dir="rtl">
+<div class="w-full px-4 py-8 md:px-16 lg:px-32">
 	<div class="flex justify-between items-center gap-4">
 		<div>
-			<h1 class="text-2xl font-bold text-secondary-600">{t?.title ?? 'مشروع'}</h1>
-			{#if project.ownershipType && ownershipTypeMap[project.ownershipType]}
+			<h1 class="text-2xl font-bold text-secondary-600 text-start">
+				{t?.title ?? $_('project_detail.fallback_title')}
+			</h1>
+			{#if project.ownershipType}
 				<h1 class="text-xs font-bold text-black bg-primary/60 inline px-2 pt-px rounded-full">
-					{ownershipTypeMap[project.ownershipType]}
+					{$_(`enums.ownership.${project.ownershipType}`)}
 				</h1>
 			{/if}
 		</div>
 		{#if project.startingPrice != null}
-			<h1 class="text-secondary-600 text-2xl font-bold">تبدأ من {formatCurrency(project.startingPrice)}</h1>
+			<h1 class="text-secondary-600 text-2xl font-bold text-end">
+				{$_('project_detail.starts_from_price', { values: { price: formatCurrency(project.startingPrice, lang) } })}
+			</h1>
 		{/if}
 	</div>
 
@@ -111,7 +151,12 @@
 					<button
 						onclick={() => openGalary(images[1])}
 						class="flex-1 min-h-0 rounded-xl shadow-lg overflow-hidden relative">
-						<img src={images[1]} alt={t?.title ?? ''} loading="lazy" decoding="async" class="w-full h-full object-cover" />
+						<img
+							src={images[1]}
+							alt={t?.title ?? ''}
+							loading="lazy"
+							decoding="async"
+							class="w-full h-full object-cover" />
 						{#if images.length > 2}
 							<div class="absolute inset-0 flex items-center justify-center bg-black/60 text-secondary-100">
 								<Images size={48} />
@@ -121,7 +166,12 @@
 				{/if}
 				{#if images[2]}
 					<button onclick={() => openGalary(images[2])} class="flex-1 min-h-0 rounded-xl shadow-lg overflow-hidden">
-						<img src={images[2]} alt={t?.title ?? ''} loading="lazy" decoding="async" class="w-full h-full object-cover" />
+						<img
+							src={images[2]}
+							alt={t?.title ?? ''}
+							loading="lazy"
+							decoding="async"
+							class="w-full h-full object-cover" />
 					</button>
 				{/if}
 			</div>
@@ -130,7 +180,7 @@
 		<div
 			class="mt-4 w-full h-64 rounded-xl bg-secondary-200/40 flex flex-col items-center justify-center gap-2 text-secondary-400">
 			<ImageOff class="w-10 h-10" />
-			<span class="text-sm font-bold">لا توجد صور</span>
+			<span class="text-sm font-bold">{$_('common.no_images')}</span>
 		</div>
 	{/if}
 
@@ -139,24 +189,26 @@
 		<ul class="flex w-full h-full justify-between">
 			<li class="flex flex-col justify-center items-center text-secondary-700">
 				<Building2 class="text-secondary-500" />
-				<span class="text-xs">نوع التملك</span>
-				<span class="text-xs">{project.ownershipType ? ownershipTypeMap[project.ownershipType] : '—'}</span>
+				<span class="text-xs">{$_('project_detail.ownership_type')}</span>
+				<span class="text-xs">{project.ownershipType ? $_(`enums.ownership.${project.ownershipType}`) : '—'}</span>
 			</li>
 			<span class="border border-gray-500/15 h-8 m-auto"></span>
 			<li class="flex flex-col justify-center items-center">
 				<KeyRound class="text-secondary-500" />
-				<span class="text-xs">تاريخ التسليم</span><span class="text-xs">{deliveryDate}</span>
+				<span class="text-xs">{$_('project_detail.delivery_date')}</span><span class="text-xs">{deliveryDate}</span>
 			</li>
 			<span class="border border-gray-500/15 h-8 m-auto"></span>
 			<li class="flex flex-col justify-center items-center">
 				<Grid2x2 class="text-secondary-500" />
-				<span class="text-xs">المساحة الكلية</span><span class="text-xs">{project.totalArea ?? '—'} م²</span>
+				<span class="text-xs">{$_('project_detail.total_area')}</span><span class="text-xs"
+					>{project.totalArea ?? '—'} {$_('common.area_unit')}</span>
 			</li>
 			<span class="border border-gray-500/15 h-8 m-auto"></span>
 			<li class="flex flex-col justify-center items-center">
 				<Construction class="text-secondary-500" />
-				<span class="text-xs">حالة المشروع</span>
-				<span class="text-xs">{project.constructionStatus ? constructionMap[project.constructionStatus] : '—'}</span>
+				<span class="text-xs">{$_('project_detail.project_status')}</span>
+				<span class="text-xs"
+					>{project.constructionStatus ? $_(`enums.construction.${project.constructionStatus}`) : '—'}</span>
 			</li>
 		</ul>
 	</div>
@@ -173,7 +225,7 @@
 	<!-- نسبة الإنجاز -->
 	{#if project.constructionStatus !== 'ready'}
 		<div class="mt-8">
-			<h1 class="mb-4 text-lg text-secondary-600">نسبة إنجاز المشروع</h1>
+			<h1 class="mb-4 text-lg text-secondary-600">{$_('project_detail.completion_title')}</h1>
 			<CompletionProgress value={completion} />
 		</div>
 	{/if}
@@ -181,7 +233,7 @@
 	<!-- عن المشروع -->
 	{#if t?.description}
 		<div class="mt-8">
-			<h1 class="mb-4 text-2xl font-bold text-secondary-600">عن المشروع</h1>
+			<h1 class="mb-4 text-2xl font-bold text-secondary-600">{$_('project_detail.about')}</h1>
 			<p class="leading-8">{t.description}</p>
 		</div>
 	{/if}
@@ -189,7 +241,7 @@
 	<!-- الخدمات والمميزات -->
 	{#if amenities.length > 0}
 		<div class="mt-8 w-full">
-			<h1 class="text-2xl font-bold text-secondary-600 mb-8">الخدمات والمميزات</h1>
+			<h1 class="text-2xl font-bold text-secondary-600 mb-8">{$_('common.amenities')}</h1>
 			<div class="flex flex-wrap gap-4 justify-start items-center">
 				{#each amenities as amenity (amenity.title)}
 					<div class="flex items-center gap-4 p-2 shadow rounded-lg">
@@ -203,17 +255,20 @@
 
 	<!-- تفاصيل المشروع -->
 	<div class="mt-8 w-full">
-		<h1 class="mb-4 text-2xl font-bold text-secondary-600">تفاصيل المشروع</h1>
+		<h1 class="mb-4 text-2xl font-bold text-secondary-600">{$_('project_detail.details')}</h1>
 		<div class="grid grid-cols-1 gap-2 w-full">
 			{#if t?.developerName}
-				{@render detailRow('مطور المشروع', t.developerName)}
+				{@render detailRow($_('project_detail.developer'), t.developerName)}
 			{/if}
 			{@render detailRow(
-				'حالة المشروع',
-				project.constructionStatus ? constructionMap[project.constructionStatus] : '—'
+				$_('project_detail.project_status'),
+				project.constructionStatus ? $_(`enums.construction.${project.constructionStatus}`) : '—'
 			)}
-			{@render detailRow('تاريخ التسليم', deliveryDate)}
-			{@render detailRow('نوع التملك', project.ownershipType ? ownershipTypeMap[project.ownershipType] : '—')}
+			{@render detailRow($_('project_detail.delivery_date'), deliveryDate)}
+			{@render detailRow(
+				$_('project_detail.ownership_type'),
+				project.ownershipType ? $_(`enums.ownership.${project.ownershipType}`) : '—'
+			)}
 			{#each extraDetails as d (d.title)}
 				{@render detailRow(d.title, d.description)}
 			{/each}
@@ -223,7 +278,7 @@
 	<!-- خطط الدفع -->
 	{#if paymentPlans.length > 0}
 		<div class="mt-8 w-full">
-			<h1 class="mb-4 text-2xl font-bold text-secondary-600">خطط الدفع</h1>
+			<h1 class="mb-4 text-2xl font-bold text-secondary-600">{$_('common.payment_plans')}</h1>
 			<div class="grid grid-cols-1 gap-2 w-full">
 				{#each paymentPlans as plan (plan.title)}
 					{@render detailRow(plan.title, plan.description)}
@@ -236,24 +291,24 @@
 		class="fixed bottom-0 right-0 left-0 p-4 md:px-16 lg:px-32 flex gap-4 items-center justify-center bg-secondary-100 z-10">
 		{#if data.units.length > 0}
 			<button class="py-2 bg-primary text-secondary-100 font-bold rounded-xl grow" onclick={() => (showSheet = true)}>
-				عرض الوحدات ({data.units.length})
+				{$_('project_detail.view_units', { values: { count: data.units.length } })}
 			</button>
 		{/if}
 		<button
 			class="py-2 text-primary border border-primary font-bold rounded-xl grow"
 			onclick={() => (showContact = true)}>
-			تواصل معنا
+			{$_('common.contact_us')}
 		</button>
 	</div>
 
 	<Sheet bind:isOpen={showSheet} class="pt-4">
 		<div class="flex items-center gap-2 px-6 py-4 border-b border-secondary-600/10 md:px-8">
-			<h2 class="text-lg font-bold text-secondary-600">وحدات المشروع</h2>
+			<h2 class="text-lg font-bold text-secondary-600">{$_('project_detail.project_units')}</h2>
 			<span class="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-black text-primary">{data.units.length}</span>
 		</div>
 		<div class="select-none overflow-y-auto h-[calc(60vh-4rem)] flex flex-col gap-3 px-4 py-4 md:px-6">
 			{#each data.units as unit (unit.id)}
-				<a href="/units/{slugify(unit.title ?? '')}-{unit.id}" class="block">
+				<a href={localizedPath(lang, 'units', slugify(unit.title ?? ''), unit.id)} class="block">
 					{@render unitItem(unit)}
 				</a>
 			{/each}
@@ -298,10 +353,10 @@
 					<ImageOff class="h-6 w-6 text-secondary-400" />
 				</div>
 			{/if}
-			{#if unit.offerType && offerMap[unit.offerType]}
+			{#if unit.offerType}
 				<span
 					class="absolute top-1.5 start-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-white shadow">
-					{offerMap[unit.offerType]}
+					{$_(`enums.offer.${unit.offerType}`)}
 				</span>
 			{/if}
 		</div>
@@ -330,7 +385,8 @@
 				{#if unit.area}
 					<span
 						class="inline-flex items-center gap-1 rounded-lg bg-secondary-100 px-2 py-1 text-[11px] font-bold text-secondary-600 ring-1 ring-secondary-600/10">
-						<Grid2x2 class="h-3.5 w-3.5 text-secondary-400" />{unit.area}<span class="font-inter">م²</span>
+						<Grid2x2 class="h-3.5 w-3.5 text-secondary-400" />{unit.area}<span class="font-inter"
+							>{$_('common.area_unit')}</span>
 					</span>
 				{/if}
 			</div>
@@ -341,17 +397,18 @@
 			{#if unit.price != null}
 				<div class="text-end leading-tight">
 					<span class="block text-[10px] font-bold text-secondary-400">
-						{unit.offerType === 'rent' ? 'الإيجار' : 'يبدأ من'}
+						{unit.offerType === 'rent' ? $_('common.rent_label') : $_('common.starts_from')}
 					</span>
-					<span class="text-sm font-black text-secondary-700">{formatCurrency(unit.price)}</span>
+					<span class="text-sm font-black text-secondary-700">{formatCurrency(unit.price, lang)}</span>
 				</div>
 			{:else}
-				<span class="text-[11px] font-bold text-secondary-400">للسعر تواصل</span>
+				<span class="text-[11px] font-bold text-secondary-400">{$_('common.contact_for_price_short')}</span>
 			{/if}
 			<span
 				class="inline-flex items-center gap-0.5 text-[11px] font-black text-primary
 				transition-all duration-300 group-hover:gap-1.5">
-				التفاصيل <ChevronLeft class="h-3.5 w-3.5" />
+				{$_('common.details')}
+				<ChevronLeft class="h-3.5 w-3.5" />
 			</span>
 		</div>
 	</div>

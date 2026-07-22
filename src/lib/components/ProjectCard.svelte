@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { MapPin, BedDouble, CalendarDays, Star, ChevronLeft, Building2, ImageOff } from '@lucide/svelte';
+	import { _ } from 'svelte-i18n';
+	import { page } from '$app/state';
 	import { slugify } from '$lib/utils';
+	import { localizedPath, DEFAULT_LOCALE } from '$lib/i18n/config';
 
 	type CardProject = {
 		id: number;
@@ -21,33 +24,22 @@
 
 	let { project }: { project: CardProject } = $props();
 
-	const typeMap: Record<string, string> = {
-		residential: 'سكني',
-		commercial: 'تجاري',
-		mixed: 'مختلط',
-		land: 'أرض'
-	};
-	const unitTypeMap: Record<string, string> = {
-		villa: 'فيلا',
-		apartment: 'شقة',
-		townhouse: 'تاون هاوس',
-		land: 'أرض',
-		shop: 'محل تجاري'
-	};
-	const statusMap: Record<string, { label: string; dot: string; classes: string }> = {
-		off_plan: { label: 'على المخطط', dot: 'bg-secondary-400', classes: 'bg-white/90 text-secondary-600' },
-		under_construction: { label: 'قيد الإنشاء', dot: 'bg-primary', classes: 'bg-white/90 text-primary-500' },
-		ready: { label: 'جاهز للتسليم', dot: 'bg-green-500', classes: 'bg-white/90 text-green-700' }
+	// أنماط شارة حالة البناء (النص يأتي من ملف الترجمة enums.construction)
+	const statusStyle: Record<string, { dot: string; classes: string }> = {
+		off_plan: { dot: 'bg-secondary-400', classes: 'bg-white/90 text-secondary-600' },
+		under_construction: { dot: 'bg-primary', classes: 'bg-white/90 text-primary-500' },
+		ready: { dot: 'bg-green-500', classes: 'bg-white/90 text-green-700' }
 	};
 
+	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
 	const formatPrice = (amount: number) =>
-		new Intl.NumberFormat('ar-OM', { maximumFractionDigits: 0 }).format(amount);
+		new Intl.NumberFormat(lang, { maximumFractionDigits: 0 }).format(amount);
 
-	let status = $derived(project.constructionStatus ? statusMap[project.constructionStatus] : null);
+	let status = $derived(project.constructionStatus ? statusStyle[project.constructionStatus] : null);
 </script>
 
 <a
-	href="/projects/{slugify(project.title ?? '')}-{project.id}"
+	href={localizedPath(lang, 'projects', slugify(project.title ?? ''), project.id)}
 	class="group flex flex-col rounded-3xl bg-white ring-1 ring-secondary-700/10 shadow-sm
 	hover:shadow-2xl hover:shadow-secondary-700/20 hover:ring-secondary-700/15 hover:-translate-y-1.5
 	transition-all duration-300 overflow-hidden">
@@ -62,7 +54,7 @@
 		{:else}
 			<div class="w-full h-full flex flex-col items-center justify-center gap-2 text-secondary-400">
 				<ImageOff class="w-8 h-8" />
-				<span class="text-xs font-bold">لا توجد صورة</span>
+				<span class="text-xs font-bold">{$_('common.no_image')}</span>
 			</div>
 		{/if}
 		<div class="absolute inset-0 bg-linear-to-t from-secondary-700/80 via-secondary-700/10 to-transparent"></div>
@@ -78,7 +70,7 @@
 						{/if}
 						<span class="relative inline-flex w-2 h-2 rounded-full {status.dot}"></span>
 					</span>
-					{status.label}
+					{$_(`enums.construction.${project.constructionStatus}`)}
 				</span>
 			{:else}
 				<span></span>
@@ -86,7 +78,7 @@
 			{#if project.featured}
 				<span
 					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-black bg-primary text-white shadow-sm">
-					<Star class="w-3 h-3 fill-current" /> مميّز
+					<Star class="w-3 h-3 fill-current" /> {$_('common.featured')}
 				</span>
 			{/if}
 		</div>
@@ -113,20 +105,20 @@
 
 		{#if project.type || project.unitType || (project.bedrooms ?? 0) > 0 || project.deliveryYear}
 			<div class="flex flex-wrap gap-1.5 text-[11px] font-bold text-secondary-600">
-				{#if project.type && typeMap[project.type]}
-					<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">{typeMap[project.type]}</span>
+				{#if project.type}
+					<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">{$_(`enums.category.${project.type}`)}</span>
 				{/if}
-				{#if project.unitType && unitTypeMap[project.unitType]}
-					<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">{unitTypeMap[project.unitType]}</span>
+				{#if project.unitType}
+					<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">{$_(`enums.building_type.${project.unitType}`)}</span>
 				{/if}
 				{#if (project.bedrooms ?? 0) > 0}
 					<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
-						<BedDouble class="w-3.5 h-3.5" />{project.bedrooms} غرف
+						<BedDouble class="w-3.5 h-3.5" />{$_('common.bedrooms', { values: { count: project.bedrooms } })}
 					</span>
 				{/if}
 				{#if project.deliveryYear}
 					<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
-						<CalendarDays class="w-3.5 h-3.5" />تسليم {project.deliveryYear}
+						<CalendarDays class="w-3.5 h-3.5" />{$_('common.delivery', { values: { year: project.deliveryYear } })}
 					</span>
 				{/if}
 			</div>
@@ -135,7 +127,7 @@
 		{#if project.completion != null && project.constructionStatus !== 'ready'}
 			<div>
 				<div class="flex items-center justify-between text-[11px] font-bold text-secondary-500 mb-1.5">
-					<span>نسبة الإنجاز</span>
+					<span>{$_('common.progress')}</span>
 					<span class="text-secondary-700">{project.completion}%</span>
 				</div>
 				<div class="h-1.5 w-full rounded-full bg-secondary-200/70 overflow-hidden">
@@ -151,19 +143,19 @@
 		<div class="flex items-center justify-between mt-auto pt-3 border-t border-dashed border-secondary-600/15">
 			{#if project.startingPrice != null}
 				<div class="leading-none">
-					<span class="block text-[10px] font-bold text-secondary-400 mb-1">يبدأ من</span>
+					<span class="block text-[10px] font-bold text-secondary-400 mb-1">{$_('common.starts_from')}</span>
 					<span class="text-xl font-black text-secondary-700">
 						{formatPrice(project.startingPrice)}
-						<span class="text-[11px] font-bold text-primary">ر.ع</span>
+						<span class="text-[11px] font-bold text-primary">{$_('common.currency_omr')}</span>
 					</span>
 				</div>
 			{:else}
-				<span class="text-[13px] font-bold text-secondary-400">تواصل معنا للسعر</span>
+				<span class="text-[13px] font-bold text-secondary-400">{$_('common.contact_for_price')}</span>
 			{/if}
 			<span
 				class="inline-flex items-center gap-1 text-[13px] font-black text-primary
 				group-hover:gap-2.5 transition-all duration-300">
-				عرض التفاصيل <ChevronLeft class="w-4 h-4" />
+				{$_('common.view_details')} <ChevronLeft class="w-4 h-4" />
 			</span>
 		</div>
 	</div>
