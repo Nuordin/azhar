@@ -26,6 +26,11 @@
 				title: 'إدارة المدونة',
 				url: 'blogs',
 				icon: null
+			},
+			{
+				title: 'إدارة المواقع',
+				url: 'locations',
+				icon: null
 			}
 		]
 	};

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '$lib/server/db';
-import { units, unitTranslations, media } from '$lib/server/db/schema';
+import { units, unitTranslations, locationTranslations, media } from '$lib/server/db/schema';
 import { and, asc, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
@@ -36,7 +36,7 @@ export const load: PageServerLoad = async ({ url, params }) => {
 
 	if (q) {
 		const term = `%${q}%`;
-		const search = or(like(unitTranslations.title, term), like(unitTranslations.locationName, term));
+		const search = or(like(unitTranslations.title, term), like(locationTranslations.name, term));
 		if (search) conditions.push(search);
 	}
 
@@ -59,7 +59,7 @@ export const load: PageServerLoad = async ({ url, params }) => {
 				title: unitTranslations.title,
 				developer: unitTranslations.developer,
 				description: unitTranslations.description,
-				city: unitTranslations.locationName,
+				city: locationTranslations.name,
 				category: units.category,
 				type: units.type,
 				offerType: units.offerType,
@@ -74,6 +74,10 @@ export const load: PageServerLoad = async ({ url, params }) => {
 			})
 			.from(units)
 			.innerJoin(unitTranslations, and(eq(units.id, unitTranslations.unitId), eq(unitTranslations.locale, LOCALE)))
+			.leftJoin(
+				locationTranslations,
+				and(eq(units.locationId, locationTranslations.locationId), eq(locationTranslations.locale, LOCALE))
+			)
 			.leftJoin(media, and(eq(units.id, media.unitId), eq(media.isMain, true)))
 			.where(where)
 			.orderBy(orderBy)

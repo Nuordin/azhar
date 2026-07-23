@@ -19,9 +19,7 @@
 	<div
 		style="transition-delay: {delay}ms"
 		class="flex flex-col items-center justify-center gap-2 text-center transition-transform duration-300 ease-out hover:-translate-y-1.5">
-		<CountUp
-			value={number}
-			class="text-secondary-100 text-3xl md:text-4xl lg:text-5xl font-inter" />
+		<CountUp value={number} class="text-secondary-100 text-3xl md:text-4xl lg:text-5xl font-inter" />
 		<span class="text-secondary-100/80 font-bold text-sm md:text-base">{title}</span>
 	</div>
 {/snippet}

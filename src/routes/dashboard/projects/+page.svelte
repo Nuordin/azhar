@@ -15,6 +15,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import Icons from '$lib/components/Icons.svelte';
+	import LocationCombobox from '$lib/components/LocationCombobox.svelte';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 
@@ -82,6 +83,10 @@
 		projectForm.parentId === 'none'
 			? 'مشروع رئيسي (مستقل)'
 			: data.parentProjects.find((p) => p.id.toString() === projectForm.parentId)?.title || 'اختر المشروع'
+	);
+
+	let currentLocationLabel = $derived(
+		data.locations.find((l) => l.id.toString() === projectForm.locationId)?.name || 'اختر الموقع'
 	);
 
 	let currentOwnershipLabel = $derived(
@@ -155,7 +160,7 @@
 		}
 		formData.append('title', projectForm.title);
 		formData.append('developerName', projectForm.developerName);
-		formData.append('locationName', projectForm.locationName);
+		formData.append('locationId', projectForm.locationId);
 		formData.append('description', projectForm.description);
 
 		formData.append('ownershipType', projectForm.ownershipType);
@@ -509,8 +514,8 @@
 		</div>
 
 		<div class="grid gap-2">
-			<Label for="location" class="text-right">اسم الموقع / المنطقة</Label>
-			<Input id="location" bind:value={projectForm.locationName} placeholder="مثال: غلا، مسقط" class="text-right" />
+			<Label class="text-right">الموقع</Label>
+			<LocationCombobox locations={data.locations} bind:value={projectForm.locationId} showType />
 		</div>
 
 		<div class="grid gap-2">
@@ -851,7 +856,7 @@
 		<div class="grid grid-cols-2 gap-4">
 			{@render viewField('اسم المشروع', projectForm.title)}
 			{@render viewField('اسم المطور', projectForm.developerName)}
-			{@render viewField('الموقع', projectForm.locationName)}
+			{@render viewField('الموقع', currentLocationLabel)}
 			{@render viewField('نوع التملك', currentOwnershipLabel)}
 			{@render viewField('حالة البناء', currentStatusLabel)}
 			{@render viewField('نسبة الإنجاز', currentPercentageLabel)}
@@ -927,7 +932,14 @@
 				<Label class="text-right font-bold">الوسائط</Label>
 				<div class="grid grid-cols-3 gap-4">
 					{#each projectForm.existingMedia as file (file.id)}
-						{@render media(file.url, file.type === 'video', projectForm.mainExistingMediaId === file.id, () => {}, () => {}, true)}
+						{@render media(
+							file.url,
+							file.type === 'video',
+							projectForm.mainExistingMediaId === file.id,
+							() => {},
+							() => {},
+							true
+						)}
 					{/each}
 				</div>
 			</div>

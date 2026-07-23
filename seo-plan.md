@@ -28,15 +28,18 @@
 ### A0. Prerequisites / shared pieces
 
 **A0.1 — Site constants.** In `src/lib/config.ts` add (keep the existing WhatsApp code untouched):
+
 - `SITE_NAME` — the Arabic brand name (use `'أزهار العقارية'` as placeholder and mark with a `// TODO قبل الإطلاق` comment like the WhatsApp one, so the owner confirms the exact brand string).
 - `DEFAULT_DESCRIPTION` — one Arabic sentence (~150 chars) describing the platform (real-estate projects & units in Oman). Also TODO-marked for owner review.
 
 **A0.2 — Slug helper.** Add `slugify(title: string): string` to `src/lib/utils.ts`:
+
 - Trim, collapse whitespace runs to a single `-`, strip characters that break URLs (`/ \ ? # % & " ' < >` and control chars), keep Arabic letters as-is (Arabic in URLs is valid and good for Arabic SEO — browsers percent-encode automatically).
 - Must be usable on both server and client (no Node-only APIs).
 - Use it everywhere a detail link is built (see A4).
 
 **A0.3 — Reusable `<Seo>` component.** Create `src/lib/components/Seo.svelte`:
+
 - Props (via `$props()`): `title: string`, `description: string`, `canonical: string` (absolute URL), `ogImage?: string` (absolute URL), `ogType?: string` (default `'website'`), `jsonLd?: object | object[]` (optional), `noindex?: boolean` (default false).
 - Renders inside `<svelte:head>`:
   - `<title>{title}</title>`
@@ -53,17 +56,18 @@
 
 ### A1. Per-page meta (use `<Seo>` everywhere)
 
-| Route | title | description | ogImage |
-| --- | --- | --- | --- |
-| `(site)/+page.svelte` (home) | `SITE_NAME` + short Arabic tagline | `DEFAULT_DESCRIPTION` | a static brand image (see note) |
-| `(site)/projects/+page.svelte` | Arabic "المشاريع العقارية في عمان" style title | 1 sentence about browsing projects with filters | — |
-| `(site)/units/+page.svelte` | Arabic units-listing title | 1 sentence about browsing units | — |
-| `(site)/projects/[title]-[id]/+page.svelte` | `{translation.title} — {translation.locationName}` | first ~155 chars of `translation.description` (strip newlines; add `…` if truncated — write a small `truncateForMeta` helper in `src/lib/utils.ts`) | the `isMain` media image, absolute URL |
-| `(site)/units/[title]-[id]/+page.svelte` | `{translation.title} — {translation.locationName}` | same truncation of description | `isMain` media image |
-| `/blogs` + `/blogs/[title]-[id]` | see Part B | see Part B | cover image |
-| every `dashboard/*` page + `/dashboard/sign-in` | anything | anything | `noindex` = true (title like "لوحة التحكم" is fine; these pages must never be indexed) |
+| Route                                           | title                                              | description                                                                                                                                         | ogImage                                                                                |
+| ----------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `(site)/+page.svelte` (home)                    | `SITE_NAME` + short Arabic tagline                 | `DEFAULT_DESCRIPTION`                                                                                                                               | a static brand image (see note)                                                        |
+| `(site)/projects/+page.svelte`                  | Arabic "المشاريع العقارية في عمان" style title     | 1 sentence about browsing projects with filters                                                                                                     | —                                                                                      |
+| `(site)/units/+page.svelte`                     | Arabic units-listing title                         | 1 sentence about browsing units                                                                                                                     | —                                                                                      |
+| `(site)/projects/[title]-[id]/+page.svelte`     | `{translation.title} — {translation.locationName}` | first ~155 chars of `translation.description` (strip newlines; add `…` if truncated — write a small `truncateForMeta` helper in `src/lib/utils.ts`) | the `isMain` media image, absolute URL                                                 |
+| `(site)/units/[title]-[id]/+page.svelte`        | `{translation.title} — {translation.locationName}` | same truncation of description                                                                                                                      | `isMain` media image                                                                   |
+| `/blogs` + `/blogs/[title]-[id]`                | see Part B                                         | see Part B                                                                                                                                          | cover image                                                                            |
+| every `dashboard/*` page + `/dashboard/sign-in` | anything                                           | anything                                                                                                                                            | `noindex` = true (title like "لوحة التحكم" is fine; these pages must never be indexed) |
 
 Notes:
+
 - Detail pages: `translation` can be `null` (leftJoin). Fall back to `SITE_NAME`/`DEFAULT_DESCRIPTION` if so — never render `undefined` into a meta tag.
 - Home ogImage: use an existing brand asset from `src/lib/assets/` if a suitable one exists (`black_building.avif` is acceptable); imported assets get hashed URLs — resolve to absolute with `new URL(imported, page.url.origin).href`.
 - List pages with filter/page query params: canonical must point to the **clean** URL without query params (`/projects`, `/units`, `/blogs`) to avoid duplicate-content indexing of every filter combination.
@@ -71,6 +75,7 @@ Notes:
 ### A2. Canonical slug redirect on detail routes
 
 Titles are user-entered, so `/projects/anything-12` currently resolves. Fix in **all three** detail loaders (projects, units, blogs):
+
 1. After loading the row and its translation, compute `const canonicalSlug = slugify(translation?.title ?? '')`.
 2. If `decodeURIComponent(params.title) !== canonicalSlug`, `redirect(301, ...)` to the canonical path (encode the slug segment with `encodeURIComponent` when building the Location path).
 3. Keep the existing 404-for-unpublished behavior **before** the redirect check.
@@ -78,6 +83,7 @@ Titles are user-entered, so `/projects/anything-12` currently resolves. Fix in *
 ### A3. JSON-LD structured data
 
 Build plain objects in each `+page.svelte` (from loader data) and pass as `jsonLd`:
+
 - **Home:** `Organization` — `{ "@context": "https://schema.org", "@type": "RealEstateAgent", name: SITE_NAME, url: origin, logo: <absolute logo URL> }`.
 - **Project detail:** `RealEstateListing` with `name`, `description` (truncated), `url` (canonical), `image` (array of absolute media URLs, max ~5), and when `startingPrice` exists: `offers: { "@type": "Offer", price: startingPrice, priceCurrency: "OMR" }`.
 - **Unit detail:** same shape; use `unit.price`, and `offers.availability` mapped from `status` (`available` → `https://schema.org/InStock`, else `https://schema.org/SoldOut`).
@@ -92,6 +98,7 @@ Card components currently interpolate raw titles into hrefs. Update `ProjectCard
 ### A5. sitemap.xml
 
 Create `src/routes/sitemap.xml/+server.ts` (GET):
+
 - Query published projects (`id`, `updatedAt`, ar translation `title`), published units (same), published blogs (same). Reuse the same leftJoin+locale pattern as existing loaders.
 - Static entries: `/`, `/projects`, `/units`, `/blogs`.
 - Emit standard `<urlset xmlns="http://www.sitemap.org/schemas/sitemap/0.9">` XML; per URL: `<loc>` (absolute — build from `url.origin`, with the slug segment percent-encoded via `encodeURIComponent`) and `<lastmod>` (ISO date from `updatedAt`).
@@ -101,6 +108,7 @@ Create `src/routes/sitemap.xml/+server.ts` (GET):
 ### A6. robots.txt
 
 Replace `static/robots.txt` content with:
+
 ```
 User-agent: *
 Disallow: /dashboard
@@ -109,6 +117,7 @@ Allow: /api/locales/
 
 Sitemap: https://<PRODUCTION-DOMAIN>/sitemap.xml
 ```
+
 Leave a `# TODO: replace <PRODUCTION-DOMAIN>` comment — the real domain must be filled before launch (static files can't read env). Mention this in your summary.
 
 ### A7. Defense-in-depth noindex for the dashboard
@@ -134,6 +143,7 @@ In `src/hooks.server.ts`, inside the existing handle (after `resolve`), when `ev
 Append, copying the projects/projectTranslations style **exactly** (same `createdAt`/`updatedAt` sql defaults and `$onUpdate`):
 
 **`blogs` table:**
+
 - `id` integer PK autoincrement
 - `category` text enum: `['real_estate_tips', 'market_news', 'development', 'investment', 'company_news']` — notNull, default `'real_estate_tips'`. (Locale-independent slug; Arabic labels come from i18n, see B6.)
 - `isPublished` integer boolean, default `false`, notNull ⚠️ note: unlike projects, blogs default to **unpublished** (drafts).
@@ -141,6 +151,7 @@ Append, copying the projects/projectTranslations style **exactly** (same `create
 - `createdAt` / `updatedAt` — copy from `projects` verbatim.
 
 **`blogTranslations` table:** (mirrors `projectTranslations`)
+
 - `id` PK autoincrement; `blogId` notNull references `blogs.id` onDelete cascade; `locale` text notNull
 - `title` text notNull; `excerpt` text notNull (1–2 sentences, doubles as meta description); `content` text notNull (**Markdown source**)
 - Indexes on `blogId` and `locale`, named `blog_translations_blogId_idx` / `blog_translations_locale_idx`.
@@ -154,6 +165,7 @@ Append, copying the projects/projectTranslations style **exactly** (same `create
 ### B2. Markdown rendering (server-side, sanitized)
 
 Blog content is Markdown, rendered to HTML **on the server** in the detail loader:
+
 1. `pnpm add marked sanitize-html` and `pnpm add -D @types/sanitize-html`.
 2. Create `src/lib/server/markdown.ts` exporting `renderMarkdown(md: string): string`:
    - `marked.parse(md)` (sync mode), then `sanitizeHtml(html, options)`.
@@ -165,6 +177,7 @@ Blog content is Markdown, rendered to HTML **on the server** in the detail loade
 ### B3. Public route: `/blogs` (list)
 
 Create `src/routes/(site)/blogs/+page.server.ts`:
+
 - Load published blogs, ar translation (leftJoin pattern), cover image (leftJoin `media` on `blogId` + `isMain = true`), ordered `publishedAt` DESC (fallback `createdAt` DESC).
 - Select: `id, category, publishedAt, title, excerpt, image: media.url`.
 - Optional `?category=` filter — validate against the enum list; ignore invalid values (no crash).
@@ -172,6 +185,7 @@ Create `src/routes/(site)/blogs/+page.server.ts`:
 - Wrap queries in try/catch; on error return empty list + log (match `dashboard/projects/+page.server.ts` style).
 
 Create `src/routes/(site)/blogs/+page.svelte`:
+
 - Reuse the **card design from `LatestBlogs.svelte`'s snippet** (image with category chip, title, date, excerpt, "اقرأ المزيد") — extract it into `src/lib/components/BlogCard.svelte` so the list page, and later `LatestBlogs`, share it. Props: `{ id, title, excerpt, category, publishedAt, image }`.
 - Card link: `href="/blogs/{slugify(blog.title)}-{blog.id}"`.
 - Category chip label: `$_('blogs.category.' + category)` (keys in B6). Category filter UI: simple row of links (`/blogs?category=...` + an "all" link).
@@ -183,6 +197,7 @@ Create `src/routes/(site)/blogs/+page.svelte`:
 ### B4. Public route: `/blogs/[title]-[id]` (detail)
 
 Create `src/routes/(site)/blogs/[title]-[id]/+page.server.ts`:
+
 - Copy the structure of the project detail loader: validate `Number(params.id)`, load blog + ar translation, `if (!row || !row.blog.isPublished) throw error(404, 'المقال غير موجود')`.
 - Canonical slug redirect per A2.
 - `contentHtml = renderMarkdown(row.translation?.content ?? '')`.
@@ -190,6 +205,7 @@ Create `src/routes/(site)/blogs/[title]-[id]/+page.server.ts`:
 - Return `{ blog, translation, contentHtml, media, related }`.
 
 Create `+page.svelte`:
+
 - Layout: cover image (if any, `alt={translation.title}`, NOT lazy), category chip, `<h1>` title, publish date, excerpt as lead paragraph, then the `prose` content, then a "مقالات ذات صلة" section of 3 `BlogCard`s, then the existing `ContactUs` component (lead capture — it's already used on other pages).
 - `<Seo>` with: title = post title, description = excerpt (truncate ~155), ogType `'article'`, ogImage = absolute cover URL, jsonLd = `BlogPosting` + `BreadcrumbList` (pass as array, per A3).
 
@@ -214,11 +230,13 @@ blogs.category.development = "تطوير عقاري"
 blogs.category.investment = "استثمار"
 blogs.category.company_news = "أخبار الشركة"
 ```
+
 Also check `new_blogs.title` / `new_blogs.description` already exist (used by `LatestBlogs`). If the ASSETS folder is reachable from this repo (`ls ../ASSETS/Locales`), edit the JSON directly; otherwise list the keys in the summary.
 
 ### B7. Dashboard CRUD: `/dashboard/blogs`
 
 Clone the structure of `src/routes/dashboard/projects/` (read all three files there first and mirror them):
+
 - **`+page.server.ts`** — `load`: paginated list (`id`, `title`, `category`, `isPublished`, `publishedAt`) with the same try/catch-and-empty-fallback shape. Actions:
   - `createBlog`: fields `title`, `excerpt`, `content`, `category`, `isPublished`, plus `mediaFiles` + `thumbnailIndex` (cover images). Validate: title/excerpt/content non-empty, category in enum, at least 1 image → `fail(422, { message: <Arabic> })` like the projects action. Insert `blogs` row (set `publishedAt: new Date()` when `isPublished` is true), then `blogTranslations` (locale `'ar'`), then save files + `media` rows with `blogId` — copy the exact upload code from `createProject` (uuid filename, `path.join(process.cwd(), '..', 'ASSETS', 'uploads')`, `/uploads/<name>` URL). ⚠️ If `plan.md` Phase 1.4/2.6 (upload validation / transactions) has been implemented by the time you work, follow the improved pattern that exists in `createProject` at that point — always mirror the current state of the projects action.
   - `updateBlog`: mirror `updateProject` (update both tables, handle `deletedMediaIds`, `mainExistingMediaId`, new files). Rule: `publishedAt` is set only if it is currently null AND the post is being published now.

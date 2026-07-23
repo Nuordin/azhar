@@ -1,3 +1,5 @@
+import { SvelteDate } from 'svelte/reactivity';
+
 export class propertiesFormState {
 	isOpen = $state(false);
 	currentStep = $state(1);
@@ -56,13 +58,13 @@ export class propertiesFormState {
 		this.bedroomCount = String(data.unit.bedrooms ?? '');
 		this.bathroomCount = String(data.unit.bathrooms ?? '');
 		this.deliveryDate = data.unit.deliveryDate
-			? new Date(data.unit.deliveryDate).toISOString().split('T')[0]
+			? new SvelteDate(data.unit.deliveryDate).toISOString().split('T')[0]
 			: '';
 		this.isPublished = data.unit.isPublished;
 
 		this.name = data.translations?.title || '';
 		this.developer = data.translations?.developer || '';
-		this.location = data.translations?.locationName || '';
+		this.location = data.unit.locationId ? String(data.unit.locationId) : '';
 		this.description = data.translations?.description || '';
 		this.amenities = data.translations?.amenities || [];
 		this.paymentPlans = data.translations?.paymentPlans || [];

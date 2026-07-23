@@ -58,9 +58,7 @@
 		return () => cancelAnimationFrame(frame);
 	});
 
-	const display = $derived(
-		parsed.canCount ? parsed.prefix + toDisplayDigits(current) + parsed.suffix : value
-	);
+	const display = $derived(parsed.canCount ? parsed.prefix + toDisplayDigits(current) + parsed.suffix : value);
 </script>
 
 <span bind:this={node} class={className}>{display}</span>

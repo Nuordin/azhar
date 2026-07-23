@@ -25,7 +25,7 @@
 	const email = 'info@onewayestate.com';
 </script>
 
-<footer class="bg-secondary-700 text-secondary-100 px-4 md:px-16 lg:px-32 pt-14 pb-12">
+<footer class="bg-secondary-700 text-secondary-100 mt-32 px-4 md:px-16 lg:px-32 pt-14 pb-12">
 	<div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
 		<!-- العلامة -->
 		<div class="space-y-4">
@@ -40,7 +40,8 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				class="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-green-700">
-				<Whatsapp size={16} /> {$_('footer.whatsapp_cta')}
+				<Whatsapp size={16} />
+				{$_('footer.whatsapp_cta')}
 			</a>
 		</div>
 

@@ -8,6 +8,7 @@
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Icons from '$lib/components/Icons.svelte';
+	import LocationCombobox from '$lib/components/LocationCombobox.svelte';
 	import { propertiesForm } from './state.svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
@@ -36,7 +37,7 @@
 
 	let { data } = $props();
 
-	let { unitList, projectList, pagination } = $derived(data);
+	let { unitList, projectList, locations, pagination } = $derived(data);
 	let isSubmitting = $state(false);
 	const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
 		ready: { label: 'جاهز', variant: 'default' },
@@ -81,6 +82,9 @@
 	];
 
 	let parent = $derived(projectList?.find((project) => project.id.toString() === propertiesForm.parentId));
+	let locationLabel = $derived(
+		locations?.find((l) => l.id.toString() === propertiesForm.location)?.name || 'اختر الموقع'
+	);
 
 	let err_msg: string | null = $state(null);
 	function addAmenity() {
@@ -416,11 +420,7 @@
 		<Dialog.Content class="dark max-h-[70vh] min-h-150 min-w-150 overflow-y-auto">
 			<Dialog.Header>
 				<Dialog.Title>
-					{propertiesForm.mode === 'view'
-						? 'تفاصيل الوحدة'
-						: propertiesForm.unitId
-							? 'تعديل وحدة'
-							: 'إضافة وحدة'}
+					{propertiesForm.mode === 'view' ? 'تفاصيل الوحدة' : propertiesForm.unitId ? 'تعديل وحدة' : 'إضافة وحدة'}
 				</Dialog.Title>
 				{#if propertiesForm.mode !== 'view'}
 					<Dialog.Description>الخطوة {propertiesForm.currentStep} من 4</Dialog.Description>
@@ -486,14 +486,17 @@
 		<div class="grid grid-cols-2 gap-4">
 			{@render viewField('اسم الوحدة', propertiesForm.name)}
 			{@render viewField('اسم المطور', propertiesForm.developer)}
-			{@render viewField('الموقع', propertiesForm.location)}
+			{@render viewField('الموقع', locationLabel)}
 			{@render viewField('نوع الوحدة', unitTypesMap[propertiesForm.type])}
 			{@render viewField('تصنيف الوحدة', categoryTypeMap[propertiesForm.categoryType])}
 			{@render viewField('نوع العرض', offerMap[propertiesForm.offerType])}
 			{@render viewField('حالة الوحدة', unitStatusMap[propertiesForm.status])}
 			{@render viewField('نوع التملك', ownershipTypeMap[propertiesForm.ownershipType])}
 			{@render viewField('حالة البناء', constructionMap[propertiesForm.constructionStatus])}
-			{@render viewField('نسبة الإنجاز', propertiesForm.completionProgress ? `${propertiesForm.completionProgress}%` : '')}
+			{@render viewField(
+				'نسبة الإنجاز',
+				propertiesForm.completionProgress ? `${propertiesForm.completionProgress}%` : ''
+			)}
 			{@render viewField('السعر', formatCurrency(Number(propertiesForm.price) || null))}
 			{@render viewField('المساحة', propertiesForm.area)}
 			{@render viewField('عدد الغرف', propertiesForm.bedroomCount)}
@@ -569,7 +572,14 @@
 				<Label class="text-right font-bold">الوسائط</Label>
 				<div class="grid grid-cols-3 gap-4">
 					{#each propertiesForm.existingMedia as file (file.id)}
-						{@render media(file.url, file.type === 'video', propertiesForm.mainExistingMediaId === file.id, () => {}, () => {}, true)}
+						{@render media(
+							file.url,
+							file.type === 'video',
+							propertiesForm.mainExistingMediaId === file.id,
+							() => {},
+							() => {},
+							true
+						)}
 					{/each}
 				</div>
 			</div>
@@ -658,7 +668,7 @@
 	<div class="grid grid-cols-2 gap-4">
 		<Label class="grid gap-2">
 			الموقع
-			<Input type="text" placeholder="الموقع" bind:value={propertiesForm.location} />
+			<LocationCombobox {locations} bind:value={propertiesForm.location} showType />
 		</Label>
 		<Label class="grid gap-2">
 			السعر

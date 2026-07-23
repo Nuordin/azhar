@@ -1,5 +1,12 @@
 import { db } from '$lib/server/db';
-import { projects, projectTranslations, units, unitTranslations, media } from '$lib/server/db/schema';
+import {
+	projects,
+	projectTranslations,
+	units,
+	unitTranslations,
+	locationTranslations,
+	media
+} from '$lib/server/db/schema';
 import { and, asc, eq } from 'drizzle-orm';
 import { error, redirect } from '@sveltejs/kit';
 import { parseDetailParams, slugify } from '$lib/utils';
@@ -13,11 +20,15 @@ export const load: PageServerLoad = async ({ params }) => {
 	if (!id || isNaN(id)) throw error(404, 'المشروع غير موجود');
 
 	const [row] = await db
-		.select({ project: projects, translation: projectTranslations })
+		.select({ project: projects, translation: projectTranslations, locationName: locationTranslations.name })
 		.from(projects)
 		.leftJoin(
 			projectTranslations,
 			and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
+		)
+		.leftJoin(
+			locationTranslations,
+			and(eq(projects.locationId, locationTranslations.locationId), eq(locationTranslations.locale, LOCALE))
 		)
 		.where(eq(projects.id, id))
 		.limit(1);
@@ -67,6 +78,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	return {
 		project: row.project,
 		translation: row.translation,
+		locationName: row.locationName,
 		media: sortedMedia,
 		units: unitRows,
 		altLocales

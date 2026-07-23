@@ -68,17 +68,23 @@
 			<nav class="flex justify-center items-center gap-4 mt-12" aria-label={$_('blogs_page.pagination_aria')}>
 				{#if data.pagination.currentPage > 1}
 					<a
-						href="{sectionListPath(lang, 'blogs')}?page={data.pagination.currentPage - 1}{data.category ? `&category=${data.category}` : ''}"
+						href="{sectionListPath(lang, 'blogs')}?page={data.pagination.currentPage - 1}{data.category
+							? `&category=${data.category}`
+							: ''}"
 						class="px-4 py-2 rounded-lg border border-secondary-300 text-secondary-600 hover:bg-secondary-100">
 						{$_('blogs_page.previous')}
 					</a>
 				{/if}
 				<span class="text-sm text-secondary-500">
-					{$_('blogs_page.page_of', { values: { current: data.pagination.currentPage, total: data.pagination.totalPages } })}
+					{$_('blogs_page.page_of', {
+						values: { current: data.pagination.currentPage, total: data.pagination.totalPages }
+					})}
 				</span>
 				{#if data.pagination.currentPage < data.pagination.totalPages}
 					<a
-						href="{sectionListPath(lang, 'blogs')}?page={data.pagination.currentPage + 1}{data.category ? `&category=${data.category}` : ''}"
+						href="{sectionListPath(lang, 'blogs')}?page={data.pagination.currentPage + 1}{data.category
+							? `&category=${data.category}`
+							: ''}"
 						class="px-4 py-2 rounded-lg border border-secondary-300 text-secondary-600 hover:bg-secondary-100">
 						{$_('blogs_page.next')}
 					</a>

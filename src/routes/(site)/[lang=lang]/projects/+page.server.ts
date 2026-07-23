@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '$lib/server/db';
-import { projects, projectTranslations, media } from '$lib/server/db/schema';
+import { projects, projectTranslations, locationTranslations, media } from '$lib/server/db/schema';
 import { and, asc, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ url, params }) => {
 	const conditions: SQL[] = [eq(projects.isPublished, true)];
 
 	if (construction !== 'all') conditions.push(eq(projects.constructionStatus, construction as any));
-	if (city !== 'all') conditions.push(eq(projectTranslations.locationName, city));
+	if (city !== 'all' && !isNaN(Number(city))) conditions.push(eq(projects.locationId, Number(city)));
 
 	if (priceRange !== 'all') {
 		const [minStr, maxStr] = priceRange.split('-');
@@ -45,7 +45,7 @@ export const load: PageServerLoad = async ({ url, params }) => {
 
 	if (q) {
 		const term = `%${q}%`;
-		const search = or(like(projectTranslations.title, term), like(projectTranslations.locationName, term));
+		const search = or(like(projectTranslations.title, term), like(locationTranslations.name, term));
 		if (search) conditions.push(search);
 	}
 
@@ -67,7 +67,7 @@ export const load: PageServerLoad = async ({ url, params }) => {
 				title: projectTranslations.title,
 				developer: projectTranslations.developerName,
 				description: projectTranslations.description,
-				city: projectTranslations.locationName,
+				city: locationTranslations.name,
 				constructionStatus: projects.constructionStatus,
 				completionPercentage: projects.completionPercentage,
 				startingPrice: projects.startingPrice,
@@ -79,6 +79,10 @@ export const load: PageServerLoad = async ({ url, params }) => {
 			.innerJoin(
 				projectTranslations,
 				and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
+			)
+			.leftJoin(
+				locationTranslations,
+				and(eq(projects.locationId, locationTranslations.locationId), eq(locationTranslations.locale, LOCALE))
 			)
 			.leftJoin(media, and(eq(projects.id, media.projectId), eq(media.isMain, true)))
 			.where(where)
@@ -103,13 +107,18 @@ export const load: PageServerLoad = async ({ url, params }) => {
 		const totalCount = await db.$count(projects, where);
 		const totalPages = Math.ceil(totalCount / LIMIT);
 
-		// المدن المتاحة لعامل التصفية (قيم locationName الفريدة للمشاريع المنشورة)
+		// المواقع المتاحة لعامل التصفية: المواقع (بترجمة اللغة الحالية) التي لها مشروع منشور
 		const cityRows = await db
-			.selectDistinct({ city: projectTranslations.locationName })
-			.from(projectTranslations)
-			.innerJoin(projects, eq(projects.id, projectTranslations.projectId))
-			.where(and(eq(projects.isPublished, true), eq(projectTranslations.locale, LOCALE)));
-		const cities = cityRows.map((c) => c.city).filter((c): c is string => !!c);
+			.selectDistinct({ id: projects.locationId, name: locationTranslations.name })
+			.from(projects)
+			.innerJoin(
+				locationTranslations,
+				and(eq(projects.locationId, locationTranslations.locationId), eq(locationTranslations.locale, LOCALE))
+			)
+			.where(eq(projects.isPublished, true));
+		const cities = cityRows
+			.filter((c): c is { id: number; name: string } => c.id != null && !!c.name)
+			.sort((a, b) => a.name.localeCompare(b.name));
 
 		return {
 			projects: projectList,

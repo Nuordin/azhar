@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { eq, sql, inArray } from 'drizzle-orm';
+import { eq, and, asc, sql, inArray } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { projects, projectTranslations, media } from '$lib/server/db/schema';
+import { projects, projectTranslations, locations, locationTranslations, media } from '$lib/server/db/schema';
 import { fail } from '@sveltejs/kit';
 import crypto from 'crypto';
 import fs from 'fs/promises';
@@ -44,9 +44,20 @@ export const load: PageServerLoad = async ({ url }) => {
 			.limit(limit)
 			.offset(offset);
 
+		// قائمة المواقع لعنصر اختيار الموقع في النموذج (بالاسم العربي)
+		const locationsList = await db
+			.select({ id: locations.id, name: locationTranslations.name, type: locations.type })
+			.from(locations)
+			.leftJoin(
+				locationTranslations,
+				and(eq(locations.id, locationTranslations.locationId), eq(locationTranslations.locale, 'ar'))
+			)
+			.orderBy(asc(locationTranslations.name));
+
 		return {
 			projects: projectsList,
 			parentProjects: parentProjectsList,
+			locations: locationsList,
 			pagination: {
 				totalCount,
 				totalPages,
@@ -59,6 +70,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		return {
 			projects: [],
 			parentProjects: [],
+			locations: [],
 			pagination: {
 				totalCount: 0,
 				totalPages: 0,
@@ -89,7 +101,8 @@ export const actions = {
 
 		const title = formData.get('title') as string;
 		const developerName = formData.get('developerName') as string;
-		const locationName = formData.get('locationName') as string;
+		const locationIdRaw = formData.get('locationId') as string;
+		const locationId = locationIdRaw && locationIdRaw !== 'none' ? Number(locationIdRaw) : null;
 		const description = formData.get('description') as string;
 
 		const amenities = JSON.parse((formData.get('amenities') as string) || '[]');
@@ -102,7 +115,7 @@ export const actions = {
 		// التحقق من صحة البيانات
 		if (!title) return fail(422, { message: 'يجب الا يكون حقل اسم المشروع فارغا' });
 		if (!developerName) return fail(422, { message: 'يجب الا يكون حقل اسم المطور فارغا' });
-		if (!locationName) return fail(422, { message: 'يجب الا يكون حقل الموقع فارغا' });
+		if (!locationId) return fail(422, { message: 'يجب اختيار الموقع' });
 		if (!description) return fail(422, { message: 'يجب الا يكون حقل الوصف فارغا' });
 		if (!ownershipType) return fail(422, { message: 'يجب الا يكون حقل نوع التملك فارغا' });
 		if (!constructionStatus) return fail(422, { message: 'يجب الا يكون حقل حالة البناء فارغا' });
@@ -122,6 +135,7 @@ export const actions = {
 					completionPercentage: completionPercentage, // Drizzle enum matching
 					startingPrice: startingPrice,
 					deliveryDate: deliveryDate,
+					locationId: locationId,
 					isPublished: isPublished,
 					isFeatured: false,
 					featuredOrder: 0
@@ -135,7 +149,6 @@ export const actions = {
 				locale: 'ar',
 				title,
 				developerName,
-				locationName,
 				description,
 				amenities,
 				paymentPlans,
@@ -229,7 +242,8 @@ export const actions = {
 
 		const title = formData.get('title') as string;
 		const developerName = formData.get('developerName') as string;
-		const locationName = formData.get('locationName') as string;
+		const locationIdRaw = formData.get('locationId') as string;
+		const locationId = locationIdRaw && locationIdRaw !== 'none' ? Number(locationIdRaw) : null;
 		const description = formData.get('description') as string;
 		const amenities = JSON.parse((formData.get('amenities') as string) || '[]');
 		const paymentPlans = JSON.parse((formData.get('paymentPlans') as string) || '[]');
@@ -238,7 +252,7 @@ export const actions = {
 		// التحقق من صحة البيانات
 		if (!title) return fail(422, { message: 'يجب الا يكون حقل اسم المشروع فارغا' });
 		if (!developerName) return fail(422, { message: 'يجب الا يكون حقل اسم المطور فارغا' });
-		if (!locationName) return fail(422, { message: 'يجب الا يكون حقل الموقع فارغا' });
+		if (!locationId) return fail(422, { message: 'يجب اختيار الموقع' });
 		if (!description) return fail(422, { message: 'يجب الا يكون حقل الوصف فارغا' });
 		if (!ownershipType) return fail(422, { message: 'يجب الا يكون حقل نوع التملك فارغا' });
 		if (!constructionStatus) return fail(422, { message: 'يجب الا يكون حقل حالة البناء فارغا' });
@@ -257,6 +271,7 @@ export const actions = {
 					completionPercentage: completionPercentage,
 					startingPrice: startingPrice,
 					deliveryDate: deliveryDate,
+					locationId: locationId,
 					isPublished: isPublished,
 					updatedAt: new Date()
 				})
@@ -267,13 +282,12 @@ export const actions = {
 				.set({
 					title,
 					developerName,
-					locationName,
 					description,
 					amenities,
 					paymentPlans,
 					details
 				})
-				.where(eq(projectTranslations.projectId, projectId)); // افتراض التعديل على اللغة العربية فقط حالياً
+				.where(and(eq(projectTranslations.projectId, projectId), eq(projectTranslations.locale, 'ar'))); // تعديل الترجمة العربية فقط حالياً
 
 			const deletedMediaIds = JSON.parse((formData.get('deletedMediaIds') as string) || '[]');
 			if (deletedMediaIds.length > 0) {

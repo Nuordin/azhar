@@ -2,11 +2,19 @@
 	import { Popover, ToggleGroup, RadioGroup, Combobox } from 'bits-ui';
 	import { _ } from 'svelte-i18n';
 	import { MapPin, ChevronDown, Search, Check } from '@lucide/svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { getDirection } from '$lib/i18n/direction';
+	import { DEFAULT_LOCALE, sectionListPath } from '$lib/i18n/config';
 
 	const dir = getDirection();
 
 	type Option = { value: string; label: string };
+	type LocationOption = { id: number; name: string | null };
+
+	// قائمة المواقع تُمرَّر من قاعدة البيانات (القيمة = معرّف الموقع)
+	let { locations = [] }: { locations?: LocationOption[] } = $props();
 
 	// filter state
 	let listingType = $state('sale');
@@ -31,9 +39,17 @@
 		{ value: 'ready', label: $_('home_search.status_ready') }
 	]);
 	const residentialTypes: Option[] = $derived(
-		['apartment', 'villa', 'townhouse', 'penthouse', 'compound_villa', 'hotel_apartment', 'land', 'floor', 'building'].map(
-			(v) => ({ value: v, label: $_(`home_search.residential_types.${v}`) })
-		)
+		[
+			'apartment',
+			'villa',
+			'townhouse',
+			'penthouse',
+			'compound_villa',
+			'hotel_apartment',
+			'land',
+			'floor',
+			'building'
+		].map((v) => ({ value: v, label: $_(`home_search.residential_types.${v}`) }))
 	);
 	const commercialTypes: Option[] = $derived(
 		['office', 'shop', 'warehouse', 'commercial_building', 'commercial_land', 'factory'].map((v) => ({
@@ -46,34 +62,33 @@
 		...['1', '2', '3', '4', '5+'].map((n) => ({ value: n, label: n }))
 	]);
 	const bathOptions: Option[] = ['1', '2', '3', '4+'].map((n) => ({ value: n, label: n }));
-	// بيانات مواقع مبدئية (placeholder) — ستُستبدل بقيم قاعدة البيانات لاحقاً كما في صفحة المشاريع.
-	const locations = [
-		'دبي مارينا',
-		'وسط مدينة دبي',
-		'الخليج التجاري',
-		'نخلة جميرا',
-		'جميرا بيتش ريزيدنس',
-		'البرشاء',
-		'ديرة',
-		'بر دبي',
-		'دبي هيلز استيت',
-		'قرية جميرا الدائرية',
-		'المدينة الدولية',
-		'الفرجان'
-	];
 
 	let currentTypes = $derived(category === 'residential' ? residentialTypes : commercialTypes);
 	let selectedTypeLabel = $derived(currentTypes.find((t) => t.value === propertyType)?.label ?? '');
 	let filteredLocations = $derived.by(() => {
 		const q = locationSearch.trim();
 		if (!q) return locations;
-		return locations.filter((l) => l.includes(q));
+		return locations.filter((l) => (l.name ?? '').includes(q));
 	});
+
+	// اسم الموقع المختار فعلياً (فارغ إن لم يُختَر شيء صالح)
+	let selectedLocationLabel = $derived(locations.find((l) => String(l.id) === location)?.name ?? '');
+	// عند الإغلاق نُعيد بناء الحقل ليعرض الاختيار الفعلي فقط؛ أي نص غير مطابق يُمحى
+	let locationRemountKey = $state(0);
+	let locationInputEl = $state<HTMLInputElement | null>(null);
+
+	// عند البحث: انتقل إلى قائمة المشاريع مع تمرير معرّف الموقع المختار كعامل تصفية
+	function submitSearch() {
+		const lang = page.params.lang ?? DEFAULT_LOCALE;
+		const params = new SvelteURLSearchParams();
+		if (location) params.set('city', location);
+		const qs = params.toString();
+		goto(`${sectionListPath(lang, 'projects')}${qs ? `?${qs}` : ''}`);
+	}
 
 	const triggerClass =
 		'group w-full flex items-center justify-between gap-2 bg-gray-100 rounded-xl px-4 py-3 text-sm text-gray-600 cursor-pointer ring-1 ring-transparent transition hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[state=open]:ring-2 data-[state=open]:ring-primary data-[state=open]:text-primary';
-	const contentClass =
-		'z-50 max-w-[85vw] bg-white rounded-2xl shadow-2xl border border-gray-100 p-4';
+	const contentClass = 'z-50 max-w-[85vw] bg-white rounded-2xl shadow-2xl border border-gray-100 p-4';
 </script>
 
 <div class="w-full max-w-5xl mx-auto px-4 mt-8" role="search">
@@ -82,50 +97,62 @@
 		<div class="flex flex-col md:flex-row gap-3 md:items-stretch mb-3">
 			{@render segmented(listingOptions, listingType, (v) => (listingType = v))}
 
-			<Combobox.Root
-				type="single"
-				bind:value={location}
-				onOpenChange={(o) => {
-					if (o) locationSearch = '';
-				}}>
-				<div
-					class="group relative flex-1 bg-gray-100 rounded-xl ring-1 ring-transparent transition focus-within:ring-2 focus-within:ring-primary">
-					<MapPin
-						size={18}
-						class="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-primary" />
-					<Combobox.Input
-						placeholder={$_('home_search.location_placeholder')}
-						oninput={(e) => (locationSearch = e.currentTarget.value)}
-						class="w-full bg-transparent outline-none border-none focus:ring-0 rounded-xl ps-4 pe-10 py-3 text-sm text-gray-700 placeholder:text-gray-400 text-start" />
-				</div>
-				<Combobox.Portal>
-					<Combobox.Content dir={$dir}
-						sideOffset={8}
-						class="z-50 w-[var(--bits-floating-anchor-width)] max-h-64 overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-100 p-2">
-						<Combobox.Viewport>
-							{#each filteredLocations as loc (loc)}
-								<Combobox.Item
-									value={loc}
-									label={loc}
-									class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm cursor-pointer text-gray-600 transition data-[highlighted]:bg-primary-100/50 data-[selected]:text-primary data-[selected]:font-bold">
-									{#snippet children({ selected })}
-										<span class="truncate">{loc}</span>
-										{#if selected}
-											<Check size={16} class="text-primary shrink-0" />
-										{/if}
-									{/snippet}
-								</Combobox.Item>
-							{:else}
-								<div class="px-3 py-4 text-sm text-gray-400 text-center">{$_('home_search.no_results')}</div>
-							{/each}
-						</Combobox.Viewport>
-					</Combobox.Content>
-				</Combobox.Portal>
-			</Combobox.Root>
+			{#key locationRemountKey}
+				<Combobox.Root
+					type="single"
+					bind:value={location}
+					onOpenChange={(o) => {
+						locationSearch = '';
+						if (o) {
+							// الفتح: امسح الحقل ليبدأ المستخدم بحثاً جديداً مباشرة
+							if (locationInputEl) locationInputEl.value = '';
+						} else {
+							// الإغلاق: أعِد بناء الحقل على أساس الاختيار الفعلي (يمحو النص غير المطابق)
+							locationRemountKey++;
+						}
+					}}>
+					<div
+						class="group relative flex-1 bg-gray-100 rounded-xl ring-1 ring-transparent transition focus-within:ring-2 focus-within:ring-primary">
+						<MapPin
+							size={18}
+							class="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-primary" />
+						<Combobox.Input
+							bind:ref={locationInputEl}
+							defaultValue={selectedLocationLabel}
+							placeholder={$_('home_search.location_placeholder')}
+							oninput={(e) => (locationSearch = e.currentTarget.value)}
+							class="w-full bg-transparent outline-none border-none focus:ring-0 rounded-xl ps-4 pe-10 py-3 text-sm text-gray-700 placeholder:text-gray-400 text-start" />
+					</div>
+					<Combobox.Portal>
+						<Combobox.Content
+							dir={$dir}
+							sideOffset={8}
+							class="z-50 w-[var(--bits-floating-anchor-width)] max-h-64 overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-100 p-2">
+							<Combobox.Viewport>
+								{#each filteredLocations as loc (loc.id)}
+									<Combobox.Item
+										value={String(loc.id)}
+										label={loc.name ?? ''}
+										class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm cursor-pointer text-gray-600 transition data-[highlighted]:bg-primary-100/50 data-[selected]:text-primary data-[selected]:font-bold">
+										{#snippet children({ selected })}
+											<span class="truncate">{loc.name}</span>
+											{#if selected}
+												<Check size={16} class="text-primary shrink-0" />
+											{/if}
+										{/snippet}
+									</Combobox.Item>
+								{:else}
+									<div class="px-3 py-4 text-sm text-gray-400 text-center">{$_('home_search.no_results')}</div>
+								{/each}
+							</Combobox.Viewport>
+						</Combobox.Content>
+					</Combobox.Portal>
+				</Combobox.Root>
+			{/key}
 		</div>
 
 		<!-- Row 2: status · type · rooms · price (2×2 grid on mobile, row on md+) -->
-		<div class="grid grid-cols-2 md:flex md:flex-row gap-3 md:items-stretch">
+		<div class="grid grid-cols-3 md:flex md:flex-row gap-3 md:items-stretch">
 			{@render segmented(statusOptions, status, (v) => (status = v))}
 
 			<!-- property type dropdown -->
@@ -144,7 +171,10 @@
 							{@render tab('residential', $_('home_search.tab_residential'))}
 							{@render tab('commercial', $_('home_search.tab_commercial'))}
 						</div>
-						<RadioGroup.Root dir={$dir} bind:value={propertyType} class="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto ps-1">
+						<RadioGroup.Root
+							dir={$dir}
+							bind:value={propertyType}
+							class="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto ps-1">
 							{#each currentTypes as t (t.value)}
 								<RadioGroup.Item
 									value={t.value}
@@ -170,7 +200,7 @@
 
 			<!-- rooms & baths dropdown -->
 			<Popover.Root>
-				<div class="relative flex-1">
+				<div class="relative col-span-2 flex-1">
 					<Popover.Trigger class={triggerClass}>
 						<span class="truncate">{$_('home_search.rooms_baths_trigger')}</span>
 						<ChevronDown
@@ -245,6 +275,7 @@
 			<!-- Submit: full-width bottom row on mobile, left of the filters on md+ -->
 			<button
 				type="button"
+				onclick={submitSearch}
 				class="col-span-2 w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary hover:bg-primary-400 text-white font-bold text-sm transition cursor-pointer shadow-sm shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
 				<Search size={18} />
 				{$_('home_search.search')}
@@ -259,7 +290,7 @@
 		type="single"
 		value={current}
 		onValueChange={(v) => v && onSelect(v as string)}
-		class="flex bg-gray-100 rounded-xl p-1 gap-1 shrink-0 min-w-0 overflow-x-auto">
+		class="flex bg-gray-100 rounded-xl p-1 gap-1 col-span-3 shrink-0 min-w-0 overflow-x-auto">
 		{#each options as opt (opt.value)}
 			<ToggleGroup.Item
 				value={opt.value}

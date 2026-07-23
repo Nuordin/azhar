@@ -59,15 +59,33 @@
 			'@context': 'https://schema.org',
 			'@type': 'BreadcrumbList',
 			itemListElement: [
-				{ '@type': 'ListItem', position: 1, name: $_('common.breadcrumb_home'), item: new URL(localeHome(lang), page.url.origin).href },
-				{ '@type': 'ListItem', position: 2, name: $_('blog_detail.breadcrumb'), item: new URL(sectionListPath(lang, 'blogs'), page.url.origin).href },
+				{
+					'@type': 'ListItem',
+					position: 1,
+					name: $_('common.breadcrumb_home'),
+					item: new URL(localeHome(lang), page.url.origin).href
+				},
+				{
+					'@type': 'ListItem',
+					position: 2,
+					name: $_('blog_detail.breadcrumb'),
+					item: new URL(sectionListPath(lang, 'blogs'), page.url.origin).href
+				},
 				{ '@type': 'ListItem', position: 3, name: title, item: canonical }
 			]
 		}
 	]);
 </script>
 
-<Seo {title} {description} {canonical} ogImage={coverUrl} ogType="article" {jsonLd} {alternates} ogLocale={`${lang}_OM`} />
+<Seo
+	{title}
+	{description}
+	{canonical}
+	ogImage={coverUrl}
+	ogType="article"
+	{jsonLd}
+	{alternates}
+	ogLocale={`${lang}_OM`} />
 
 <div class="font-aljazeera min-h-screen px-4 md:px-16 lg:px-32 pt-10 pb-28">
 	<article class="max-w-3xl mx-auto">

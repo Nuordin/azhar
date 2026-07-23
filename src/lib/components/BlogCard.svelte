@@ -27,7 +27,9 @@
 	const href = $derived(localizedPath(page.params.lang ?? DEFAULT_LOCALE, 'blogs', slugify(blog.title ?? ''), blog.id));
 </script>
 
-<a {href} class="w-full max-w-sm border border-gray-700/20 shadow-md p-4 rounded-3xl flex flex-col hover:shadow-lg transition-shadow">
+<a
+	{href}
+	class="w-full max-w-sm border border-gray-700/20 shadow-md p-4 rounded-3xl flex flex-col hover:shadow-lg transition-shadow">
 	<div
 		class="relative w-full aspect-3/2 rounded-3xl border-stone-600/30 border overflow-hidden flex items-center justify-center">
 		{#if blog.image}
@@ -45,7 +47,9 @@
 	</div>
 	<div class="mt-4 text-secondary-700/70">
 		<h2 class="text-2xl font-bold">{blog.title}</h2>
-		<p class="flex gap-2 text-sm items-center"><CalendarDays strokeWidth={1.5} size={16} />{formatDate(blog.publishedAt)}</p>
+		<p class="flex gap-2 text-sm items-center">
+			<CalendarDays strokeWidth={1.5} size={16} />{formatDate(blog.publishedAt)}
+		</p>
 	</div>
 	<p class="pt-2 text-sm text-secondary-700/70 line-clamp-3">{blog.excerpt}</p>
 	<div class="flex gap-2 font-bold mt-auto pt-8 justify-end items-center">

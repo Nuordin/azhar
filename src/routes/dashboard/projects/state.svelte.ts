@@ -10,7 +10,7 @@ export class ProjectFormState {
 
 	title = $state('');
 	developerName = $state('');
-	locationName = $state('');
+	locationId = $state<string>('');
 	description = $state('');
 
 	ownershipType = $state('');
@@ -73,7 +73,7 @@ export class ProjectFormState {
 
 		this.title = data.translations?.title || '';
 		this.developerName = data.translations?.developerName || '';
-		this.locationName = data.translations?.locationName || '';
+		this.locationId = data.project.locationId ? String(data.project.locationId) : '';
 		this.description = data.translations?.description || '';
 
 		this.amenities = data.translations?.amenities || [];
@@ -100,7 +100,7 @@ export class ProjectFormState {
 		this.parentId = 'none';
 		this.title = '';
 		this.developerName = '';
-		this.locationName = '';
+		this.locationId = '';
 		this.description = '';
 		this.ownershipType = '';
 		this.constructionStatus = '';

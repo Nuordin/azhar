@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { units, unitTranslations, media } from '$lib/server/db/schema';
+import { units, unitTranslations, locationTranslations, media } from '$lib/server/db/schema';
 import { and, asc, eq } from 'drizzle-orm';
 import { error, redirect } from '@sveltejs/kit';
 import { parseDetailParams, slugify } from '$lib/utils';
@@ -15,10 +15,15 @@ export const load: PageServerLoad = async ({ params }) => {
 	const [row] = await db
 		.select({
 			unit: units,
-			translation: unitTranslations
+			translation: unitTranslations,
+			locationName: locationTranslations.name
 		})
 		.from(units)
 		.leftJoin(unitTranslations, and(eq(units.id, unitTranslations.unitId), eq(unitTranslations.locale, LOCALE)))
+		.leftJoin(
+			locationTranslations,
+			and(eq(units.locationId, locationTranslations.locationId), eq(locationTranslations.locale, LOCALE))
+		)
 		.where(eq(units.id, id))
 		.limit(1);
 
@@ -42,11 +47,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		.filter((t) => availableCodes.has(t.locale))
 		.map((t) => ({ code: t.locale, slug: slugify(t.title) }));
 
-	const unitMedia = await db
-		.select()
-		.from(media)
-		.where(eq(media.unitId, id))
-		.orderBy(asc(media.sortOrder));
+	const unitMedia = await db.select().from(media).where(eq(media.unitId, id)).orderBy(asc(media.sortOrder));
 
 	// اجعل الصورة الرئيسية أولاً
 	const sortedMedia = [...unitMedia].sort((a, b) => Number(b.isMain) - Number(a.isMain));
@@ -54,6 +55,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	return {
 		unit: row.unit,
 		translation: row.translation,
+		locationName: row.locationName,
 		media: sortedMedia,
 		altLocales
 	};

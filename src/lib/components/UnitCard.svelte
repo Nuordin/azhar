@@ -170,7 +170,8 @@
 			<span
 				class="inline-flex items-center gap-1 text-[13px] font-black text-primary
 				group-hover:gap-2.5 transition-all duration-300">
-				{$_('common.view_details')} <ChevronLeft class="w-4 h-4" />
+				{$_('common.view_details')}
+				<ChevronLeft class="w-4 h-4" />
 			</span>
 		</div>
 	</div>

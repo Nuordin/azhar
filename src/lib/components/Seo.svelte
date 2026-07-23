@@ -31,10 +31,7 @@
 	// منع كسر وسم السكربت أو حقن HTML من نصوص قادمة من قاعدة البيانات
 	const jsonLdScript = $derived(
 		jsonLd
-			? '<script type="application/ld+json">' +
-					JSON.stringify(jsonLd).replace(/</g, '\\u003c') +
-					'</' +
-					'script>'
+			? '<script type="application/ld+json">' + JSON.stringify(jsonLd).replace(/</g, '\\u003c') + '</' + 'script>'
 			: null
 	);
 </script>

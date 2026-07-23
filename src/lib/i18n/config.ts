@@ -16,12 +16,7 @@ export type Section = 'projects' | 'units' | 'blogs';
 export const looksLikeLocale = (p: string): boolean => /^[a-z]{2,3}$/.test(p);
 
 /** يبني رابط تفاصيل `/{locale}/{section}/{slug}-{id}` مع ترميز المقطع النصي. */
-export function localizedPath(
-	locale: string,
-	section: Section,
-	slug: string,
-	id: number | string
-): string {
+export function localizedPath(locale: string, section: Section, slug: string, id: number | string): string {
 	return `/${locale}/${section}/${encodeURIComponent(slug)}-${id}`;
 }
 

@@ -27,6 +27,7 @@
 
 	const project = $derived(data.project);
 	const t = $derived(data.translation);
+	const locationName = $derived(data.locationName);
 
 	type Amenity = { title: string; icon: string };
 	type Detail = { title: string; description: string };
@@ -36,7 +37,7 @@
 	// بيانات محركات البحث
 	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
 	const seoTitle = $derived(
-		t?.title ? `${t.title} — ${t.locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME
+		t?.title ? `${t.title} — ${locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME
 	);
 	const seoDescription = $derived(t?.description ? truncateForMeta(t.description) : DEFAULT_DESCRIPTION);
 	const canonical = $derived(
@@ -213,11 +214,11 @@
 		</ul>
 	</div>
 
-	{#if t?.locationName}
+	{#if locationName}
 		<div class="mt-4">
 			<span
 				class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary-100 text-sm font-bold text-secondary-600">
-				<MapPin size={16} />{t.locationName}
+				<MapPin size={16} />{locationName}
 			</span>
 		</div>
 	{/if}

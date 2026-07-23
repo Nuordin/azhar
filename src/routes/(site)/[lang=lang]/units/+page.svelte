@@ -150,7 +150,8 @@
 			class="fixed inset-y-0 inset-s-0 z-50 flex w-full max-w-sm flex-col bg-white shadow-2xl font-aljazeera">
 			<div class="flex items-center justify-between p-4 border-b border-secondary-600/10">
 				<h2 class="text-lg font-black text-secondary-700 inline-flex items-center gap-2">
-					<SlidersHorizontal class="w-5 h-5 text-primary" /> {$_('units_page.filter_title')}
+					<SlidersHorizontal class="w-5 h-5 text-primary" />
+					{$_('units_page.filter_title')}
 				</h2>
 				<button
 					onclick={() => (showFilters = false)}

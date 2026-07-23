@@ -1,7 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '$lib/server/db';
-import { units, unitTranslations, projects, projectTranslations, media } from '$lib/server/db/schema';
-import { eq, sql, inArray } from 'drizzle-orm';
+import {
+	units,
+	unitTranslations,
+	projects,
+	projectTranslations,
+	locations,
+	locationTranslations,
+	media
+} from '$lib/server/db/schema';
+import { eq, and, asc, sql, inArray } from 'drizzle-orm';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 
@@ -38,9 +46,21 @@ export const load: PageServerLoad = async ({ url }) => {
 			.select({ id: projects.id, title: projectTranslations.title })
 			.from(projects)
 			.leftJoin(projectTranslations, eq(projects.id, projectTranslations.projectId));
+
+		// قائمة المواقع لعنصر اختيار الموقع في النموذج (بالاسم العربي)
+		const locationsList = await db
+			.select({ id: locations.id, name: locationTranslations.name, type: locations.type })
+			.from(locations)
+			.leftJoin(
+				locationTranslations,
+				and(eq(locations.id, locationTranslations.locationId), eq(locationTranslations.locale, 'ar'))
+			)
+			.orderBy(asc(locationTranslations.name));
+
 		return {
 			unitList,
 			projectList,
+			locations: locationsList,
 			pagination: {
 				totalCount,
 				totalPages,
@@ -50,7 +70,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		};
 	} catch (error) {
 		console.error(error);
-		return { error: 'Failed to load properties' };
+		return { error: 'Failed to load properties', locations: [] };
 	}
 };
 
@@ -66,7 +86,8 @@ export const actions = {
 		const category_type = formData.get('category_type') || null;
 		const offer_type = formData.get('offer_type') || null;
 		const description = formData.get('description') || null;
-		const location = formData.get('location') || null;
+		const locationRaw = formData.get('location') as string;
+		const locationId = locationRaw && locationRaw !== 'none' ? Number(locationRaw) : null;
 		const price = formData.get('price') || null;
 		const ownership_type = formData.get('ownership_type') || null;
 		const delivery_date = formData.get('delivery_date') || null;
@@ -90,7 +111,7 @@ export const actions = {
 		if (!category_type) return fail(422, { message: 'يجب الا يكون حقل تصنيف اوحدة فارغا' });
 		if (!offer_type) return fail(422, { message: 'يجب الا يكون حقل نوع العرض فارغا' });
 		if (!description) return fail(422, { message: 'يجب الا يكون الوصف فارغا' });
-		if (!location) return fail(422, { message: 'يجب الا يكون حقل الموقع فارغا' });
+		if (!locationId) return fail(422, { message: 'يجب اختيار الموقع' });
 		if (!price) return fail(422, { message: 'يجب الا يكون حقل السعر فارغا' });
 		if (!ownership_type) return fail(422, { message: 'يجب الا يكون حقل نوع التملك فارغا' });
 		if (!unit_state) return fail(422, { message: 'يجب الا يكون حقل حالة الوحدة فارغا' });
@@ -129,6 +150,7 @@ export const actions = {
 					bedrooms: Number(bedroom_count),
 					bathrooms: Number(bathroom_count),
 					deliveryDate: delivery_date ? new Date(delivery_date as string) : null,
+					locationId: locationId,
 					isPublished: is_published ? true : false
 				})
 				.returning({ id: units.id });
@@ -140,7 +162,6 @@ export const actions = {
 				title: title as string,
 				developer: developer as string,
 				description: description as string,
-				locationName: location as string,
 				amenities: amenities, // Drizzle handles the JSON stringification based on your schema
 				paymentPlans: payment_plans,
 				details: details
@@ -193,7 +214,8 @@ export const actions = {
 		const category_type = formData.get('category_type') || null;
 		const offer_type = formData.get('offer_type') || null;
 		const description = formData.get('description') || null;
-		const location = formData.get('location') || null;
+		const locationRaw = formData.get('location') as string;
+		const locationId = locationRaw && locationRaw !== 'none' ? Number(locationRaw) : null;
 		const price = formData.get('price') || null;
 		const ownership_type = formData.get('ownership_type') || null;
 		const delivery_date = formData.get('delivery_date') || null;
@@ -215,7 +237,7 @@ export const actions = {
 		if (!category_type) return fail(422, { message: 'يجب الا يكون حقل تصنيف اوحدة فارغا' });
 		if (!offer_type) return fail(422, { message: 'يجب الا يكون حقل نوع العرض فارغا' });
 		if (!description) return fail(422, { message: 'يجب الا يكون الوصف فارغا' });
-		if (!location) return fail(422, { message: 'يجب الا يكون حقل الموقع فارغا' });
+		if (!locationId) return fail(422, { message: 'يجب اختيار الموقع' });
 		if (!price) return fail(422, { message: 'يجب الا يكون حقل السعر فارغا' });
 		if (!ownership_type) return fail(422, { message: 'يجب الا يكون حقل نوع التملك فارغا' });
 		if (!unit_state) return fail(422, { message: 'يجب الا يكون حقل حالة الوحدة فارغا' });
@@ -246,6 +268,7 @@ export const actions = {
 					bedrooms: Number(bedroom_count),
 					bathrooms: Number(bathroom_count),
 					deliveryDate: delivery_date ? new Date(delivery_date as string) : null,
+					locationId: locationId,
 					isPublished: is_published,
 					updatedAt: new Date()
 				})
@@ -257,12 +280,11 @@ export const actions = {
 					title: title as string,
 					developer: developer as string,
 					description: description as string,
-					locationName: location as string,
 					amenities: amenities,
 					paymentPlans: payment_plans,
 					details: details
 				})
-				.where(eq(unitTranslations.unitId, unitId));
+				.where(and(eq(unitTranslations.unitId, unitId), eq(unitTranslations.locale, 'ar')));
 
 			const deletedMediaIds = JSON.parse((formData.get('deletedMediaIds') as string) || '[]');
 			if (deletedMediaIds.length > 0) {

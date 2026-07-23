@@ -126,6 +126,7 @@ export const projects = sqliteTable(
 		deliveryDate: integer('delivery_date', { mode: 'timestamp_ms' }),
 		latitude: real('latitude'),
 		longitude: real('longitude'),
+		locationId: integer('location_id').references(() => locations.id, { onDelete: 'set null' }),
 		isPublished: integer('is_published', { mode: 'boolean' }).default(true).notNull(),
 		isFeatured: integer('is_featured', { mode: 'boolean' }).default(false).notNull(),
 		featuredOrder: integer('featured_order').default(0),
@@ -137,7 +138,7 @@ export const projects = sqliteTable(
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull()
 	},
-	(table) => [index('projects_parentId_idx').on(table.parentId)]
+	(table) => [index('projects_parentId_idx').on(table.parentId), index('projects_locationId_idx').on(table.locationId)]
 );
 
 export const projectTranslations = sqliteTable(
@@ -150,7 +151,6 @@ export const projectTranslations = sqliteTable(
 		locale: text('locale').notNull(),
 		title: text('title').notNull(),
 		description: text('description').notNull(),
-		locationName: text('location_name').notNull(),
 		developerName: text('developer_name').notNull(),
 		amenities: text('amenities', { mode: 'json' }),
 		paymentPlans: text('payment_plans', { mode: 'json' }),
@@ -205,6 +205,7 @@ export const units = sqliteTable(
 		bedrooms: integer('bedrooms'),
 		bathrooms: integer('bathrooms'),
 		deliveryDate: integer('delivery_date', { mode: 'timestamp_ms' }),
+		locationId: integer('location_id').references(() => locations.id, { onDelete: 'set null' }),
 		isPublished: integer('is_published', { mode: 'boolean' }).default(true).notNull(),
 		createdAt: integer('created_at', { mode: 'timestamp_ms' })
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
@@ -214,7 +215,7 @@ export const units = sqliteTable(
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull()
 	},
-	(table) => [index('units_projectId_idx').on(table.projectId)]
+	(table) => [index('units_projectId_idx').on(table.projectId), index('units_locationId_idx').on(table.locationId)]
 );
 
 export const unitTranslations = sqliteTable(
@@ -228,7 +229,6 @@ export const unitTranslations = sqliteTable(
 		title: text('title').notNull(),
 		developer: text('developer').notNull(),
 		description: text('description').notNull(),
-		locationName: text('location_name').notNull(),
 		amenities: text('amenities', { mode: 'json' }),
 		paymentPlans: text('payment_plans', { mode: 'json' }),
 		details: text('details', { mode: 'json' })
@@ -236,6 +236,48 @@ export const unitTranslations = sqliteTable(
 	(table) => [
 		index('unit_translations_unitId_idx').on(table.unitId),
 		index('unit_translations_locale_idx').on(table.locale)
+	]
+);
+
+// Locations: a translatable, self-referencing entity following Oman's
+// administrative hierarchy (governorate > wilayat > city > district).
+// إحداثيات المشروع/الوحدة تبقى على جدوليهما — الموقع كيان مرجعي فقط.
+export const locations = sqliteTable(
+	'locations',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		parentId: integer('parent_id').references((): AnySQLiteColumn => locations.id, {
+			onDelete: 'set null'
+		}),
+		type: text('type', { enum: ['governorate', 'wilayat', 'city', 'district'] }).notNull(),
+		// علامة تمهيدية لصفحة الموقع المخصّصة (تُبنى لاحقاً)
+		hasDedicatedPage: integer('has_dedicated_page', { mode: 'boolean' }).default(false).notNull(),
+		isPublished: integer('is_published', { mode: 'boolean' }).default(true).notNull(),
+		createdAt: integer('created_at', { mode: 'timestamp_ms' })
+			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+			.notNull(),
+		updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull()
+	},
+	(table) => [index('locations_parentId_idx').on(table.parentId), index('locations_type_idx').on(table.type)]
+);
+
+export const locationTranslations = sqliteTable(
+	'location_translations',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		locationId: integer('location_id')
+			.notNull()
+			.references(() => locations.id, { onDelete: 'cascade' }),
+		locale: text('locale').notNull(),
+		name: text('name').notNull()
+		// description مؤجّل إلى مهمة صفحة الموقع المخصّصة
+	},
+	(table) => [
+		index('location_translations_locationId_idx').on(table.locationId),
+		index('location_translations_locale_idx').on(table.locale)
 	]
 );
 
@@ -311,6 +353,10 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
 	children: many(projects, {
 		relationName: 'project_parent_children'
 	}),
+	location: one(locations, {
+		fields: [projects.locationId],
+		references: [locations.id]
+	}),
 	translations: many(projectTranslations),
 	units: many(units),
 	media: many(media)
@@ -328,6 +374,10 @@ export const unitsRelations = relations(units, ({ one, many }) => ({
 		fields: [units.projectId],
 		references: [projects.id]
 	}),
+	location: one(locations, {
+		fields: [units.locationId],
+		references: [locations.id]
+	}),
 	translations: many(unitTranslations),
 	media: many(media)
 }));
@@ -336,6 +386,27 @@ export const unitTranslationsRelations = relations(unitTranslations, ({ one }) =
 	unit: one(units, {
 		fields: [unitTranslations.unitId],
 		references: [units.id]
+	})
+}));
+
+export const locationsRelations = relations(locations, ({ one, many }) => ({
+	parent: one(locations, {
+		fields: [locations.parentId],
+		references: [locations.id],
+		relationName: 'location_parent_children'
+	}),
+	children: many(locations, {
+		relationName: 'location_parent_children'
+	}),
+	translations: many(locationTranslations),
+	projects: many(projects),
+	units: many(units)
+}));
+
+export const locationTranslationsRelations = relations(locationTranslations, ({ one }) => ({
+	location: one(locations, {
+		fields: [locationTranslations.locationId],
+		references: [locations.id]
 	})
 }));
 

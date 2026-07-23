@@ -44,7 +44,7 @@
 	ogLocale={`${lang}_OM`} />
 
 <SliderHero />
-<HomeNewSearch />
+<HomeNewSearch locations={data.searchLocations} />
 <About />
 <OurServices />
 <SpecialEstates projectList={data.featuredProjects} />

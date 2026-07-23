@@ -13,6 +13,8 @@ import {
 	projectTranslations,
 	units,
 	unitTranslations,
+	locations,
+	locationTranslations,
 	blogs,
 	blogTranslations,
 	media,
@@ -48,20 +50,122 @@ const PLACEHOLDER_IMAGES = ['/uploads/seed-1.avif', '/uploads/seed-2.avif', '/up
 // بيانات ثنائية اللغة (عربي/إنجليزي)
 type Bi = { ar: string; en: string };
 
-const cities: Bi[] = [
-	{ ar: 'مسقط', en: 'Muscat' },
-	{ ar: 'صلالة', en: 'Salalah' },
-	{ ar: 'صحار', en: 'Sohar' },
-	{ ar: 'نزوى', en: 'Nizwa' },
-	{ ar: 'صور', en: 'Sur' },
-	{ ar: 'قريات', en: 'Quriyat' },
-	{ ar: 'البريمي', en: 'Al Buraimi' },
-	{ ar: 'الرستاق', en: 'Ar Rustaq' },
-	{ ar: 'بركاء', en: 'Barka' },
-	{ ar: 'عبري', en: 'Ibri' },
-	{ ar: 'السيب', en: 'As Seeb' },
-	{ ar: 'بوشر', en: 'Bawshar' }
+// شجرة المواقع ثنائية اللغة وفق التقسيم الإداري العُماني
+// (محافظة > ولاية > مدينة > حي). تُدرَج قبل المشاريع والوحدات، والولايات/المدن/الأحياء
+// فقط هي القابلة للإسناد للمشاريع والوحدات.
+type LocType = 'governorate' | 'wilayat' | 'city' | 'district';
+type LocNode = { ar: string; en: string; type: LocType; hasDedicatedPage?: boolean; children?: LocNode[] };
+
+const locationTree: LocNode[] = [
+	{
+		ar: 'مسقط',
+		en: 'Muscat',
+		type: 'governorate',
+		children: [
+			{
+				ar: 'بوشر',
+				en: 'Bawshar',
+				type: 'wilayat',
+				children: [
+					{
+						ar: 'مدينة السلطان هيثم المستقبلية',
+						en: 'Sultan Haitham Future City',
+						type: 'city',
+						hasDedicatedPage: true,
+						children: [
+							{ ar: 'الحي التجاري', en: 'Commercial District', type: 'district' },
+							{ ar: 'الحي السكني', en: 'Residential District', type: 'district' }
+						]
+					},
+					{ ar: 'الغبرة', en: 'Al Ghubrah', type: 'district' }
+				]
+			},
+			{
+				ar: 'السيب',
+				en: 'As Seeb',
+				type: 'wilayat',
+				children: [
+					{ ar: 'الموالح', en: 'Al Mawaleh', type: 'district' },
+					{ ar: 'المعبيلة', en: 'Al Maabilah', type: 'district' }
+				]
+			},
+			{ ar: 'قريات', en: 'Quriyat', type: 'wilayat' }
+		]
+	},
+	{
+		ar: 'ظفار',
+		en: 'Dhofar',
+		type: 'governorate',
+		children: [{ ar: 'صلالة', en: 'Salalah', type: 'wilayat' }]
+	},
+	{
+		ar: 'شمال الباطنة',
+		en: 'North Al Batinah',
+		type: 'governorate',
+		children: [{ ar: 'صحار', en: 'Sohar', type: 'wilayat' }]
+	},
+	{
+		ar: 'جنوب الباطنة',
+		en: 'South Al Batinah',
+		type: 'governorate',
+		children: [
+			{ ar: 'الرستاق', en: 'Ar Rustaq', type: 'wilayat' },
+			{ ar: 'بركاء', en: 'Barka', type: 'wilayat' }
+		]
+	},
+	{
+		ar: 'الداخلية',
+		en: 'Ad Dakhiliyah',
+		type: 'governorate',
+		children: [{ ar: 'نزوى', en: 'Nizwa', type: 'wilayat' }]
+	},
+	{
+		ar: 'جنوب الشرقية',
+		en: 'South Ash Sharqiyah',
+		type: 'governorate',
+		children: [{ ar: 'صور', en: 'Sur', type: 'wilayat' }]
+	},
+	{
+		ar: 'البريمي',
+		en: 'Al Buraimi',
+		type: 'governorate',
+		children: [{ ar: 'البريمي', en: 'Al Buraimi', type: 'wilayat' }]
+	},
+	{
+		ar: 'الظاهرة',
+		en: 'Ad Dhahirah',
+		type: 'governorate',
+		children: [{ ar: 'عبري', en: 'Ibri', type: 'wilayat' }]
+	}
 ];
+
+// المواقع القابلة للإسناد (ولاية/مدينة/حي)، تُملأ أثناء الإدراج بمعرّفاتها
+const assignableLocations: { id: number; ar: string; en: string }[] = [];
+
+/** يُدرج شجرة المواقع وترجماتها (ar/en) ويجمع المواقع القابلة للإسناد. */
+function seedLocations() {
+	const insert = (node: LocNode, parentId: number | null) => {
+		const { id } = db
+			.insert(locations)
+			.values({
+				parentId,
+				type: node.type,
+				hasDedicatedPage: node.hasDedicatedPage ?? false,
+				isPublished: true
+			})
+			.returning({ id: locations.id })
+			.get();
+		db.insert(locationTranslations)
+			.values([
+				{ locationId: id, locale: 'ar', name: node.ar },
+				{ locationId: id, locale: 'en', name: node.en }
+			])
+			.run();
+		if (node.type !== 'governorate') assignableLocations.push({ id, ar: node.ar, en: node.en });
+		for (const child of node.children ?? []) insert(child, id);
+	};
+	for (const root of locationTree) insert(root, null);
+}
 const developers: Bi[] = [
 	{ ar: 'شركة الأزهر العقارية', en: 'Al Azhar Real Estate Co.' },
 	{ ar: 'المسار الموحد العقارية', en: 'One Way Estate' },
@@ -384,22 +488,32 @@ async function main() {
 	db.delete(units).run();
 	db.delete(projectTranslations).run();
 	db.delete(projects).run();
+	db.delete(locationTranslations).run();
+	db.delete(locations).run();
 	db.delete(blogTranslations).run();
 	db.delete(blogs).run();
+
+	console.log('📍 إنشاء شجرة المواقع...');
+	seedLocations();
 
 	const NUM_PROJECTS = 20;
 	const NUM_UNITS = 40;
 
-	const projectMeta: { id: number; title: string; titleEn: string; city: Bi }[] = [];
+	const projectMeta: {
+		id: number;
+		title: string;
+		titleEn: string;
+		location: { id: number; ar: string; en: string };
+	}[] = [];
 
 	console.log(`🏗️  إنشاء ${NUM_PROJECTS} مشروعاً...`);
 	for (let i = 0; i < NUM_PROJECTS; i++) {
-		const city = pick(cities);
+		const loc = pick(assignableLocations);
 		const developer = pick(developers);
 		const prefix = pick(projectPrefixes);
 		const suffix = pick(projectSuffixes);
-		const title = `${prefix.ar} ${city.ar} ${suffix.ar}`;
-		const titleEn = `${prefix.en} ${city.en} ${suffix.en}`;
+		const title = `${prefix.ar} ${loc.ar} ${suffix.ar}`;
+		const titleEn = `${prefix.en} ${loc.en} ${suffix.en}`;
 		const status = pick([...constructionStatuses]);
 		const completion = pick(completionByStatus[status]);
 		const isFeatured = i < 6; // أول 6 مشاريع مميّزة
@@ -417,6 +531,7 @@ async function main() {
 				totalArea: int(2, 60) * 1000,
 				startingPrice,
 				deliveryDate: deliveryFor(status),
+				locationId: loc.id,
 				isPublished: true,
 				isFeatured,
 				featuredOrder: isFeatured ? i : 0
@@ -431,13 +546,12 @@ async function main() {
 					locale: 'ar',
 					title,
 					description: desc.ar,
-					locationName: city.ar,
 					developerName: developer.ar,
 					amenities: amenitiesFor(amenities, 'ar'),
 					paymentPlans: paymentPlansAr,
 					details: [
 						{ title: 'المطوّر', description: developer.ar },
-						{ title: 'المدينة', description: city.ar },
+						{ title: 'الموقع', description: loc.ar },
 						{ title: 'عدد الوحدات', description: `${unitsCount} وحدة` }
 					]
 				},
@@ -446,13 +560,12 @@ async function main() {
 					locale: 'en',
 					title: titleEn,
 					description: desc.en,
-					locationName: city.en,
 					developerName: developer.en,
 					amenities: amenitiesFor(amenities, 'en'),
 					paymentPlans: paymentPlansEn,
 					details: [
 						{ title: 'Developer', description: developer.en },
-						{ title: 'City', description: city.en },
+						{ title: 'Location', description: loc.en },
 						{ title: 'Number of Units', description: `${unitsCount} units` }
 					]
 				}
@@ -462,7 +575,7 @@ async function main() {
 		db.insert(media)
 			.values(mediaRows({ projectId: id }))
 			.run();
-		projectMeta.push({ id, title, titleEn, city });
+		projectMeta.push({ id, title, titleEn, location: loc });
 	}
 
 	console.log(`🏠 إنشاء ${NUM_UNITS} وحدة...`);
@@ -495,6 +608,7 @@ async function main() {
 				bedrooms: rooms ? int(1, 5) : 0,
 				bathrooms: rooms ? int(1, 4) : 0,
 				deliveryDate: deliveryFor(status),
+				locationId: parent.location.id,
 				isPublished: true
 			})
 			.returning({ id: units.id })
@@ -508,7 +622,6 @@ async function main() {
 					title: `${typeLabels[type]} في ${parent.title}`,
 					developer: developer.ar,
 					description: desc.ar,
-					locationName: parent.city.ar,
 					amenities: amenitiesFor(amenities, 'ar'),
 					paymentPlans: paymentPlansAr,
 					details: [
@@ -523,7 +636,6 @@ async function main() {
 					title: `${typeLabelsEn[type]} in ${parent.titleEn}`,
 					developer: developer.en,
 					description: desc.en,
-					locationName: parent.city.en,
 					amenities: amenitiesFor(amenities, 'en'),
 					paymentPlans: paymentPlansEn,
 					details: [

@@ -32,8 +32,7 @@
 	};
 
 	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
-	const formatPrice = (amount: number) =>
-		new Intl.NumberFormat(lang, { maximumFractionDigits: 0 }).format(amount);
+	const formatPrice = (amount: number) => new Intl.NumberFormat(lang, { maximumFractionDigits: 0 }).format(amount);
 
 	let status = $derived(project.constructionStatus ? statusStyle[project.constructionStatus] : null);
 </script>
@@ -78,7 +77,8 @@
 			{#if project.featured}
 				<span
 					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-black bg-primary text-white shadow-sm">
-					<Star class="w-3 h-3 fill-current" /> {$_('common.featured')}
+					<Star class="w-3 h-3 fill-current" />
+					{$_('common.featured')}
 				</span>
 			{/if}
 		</div>
@@ -91,7 +91,8 @@
 					<span class="inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5" />{project.city}</span>
 				{/if}
 				{#if project.developer}
-					<span class="inline-flex items-center gap-1 line-clamp-1"><Building2 class="w-3.5 h-3.5 shrink-0" />{project.developer}</span>
+					<span class="inline-flex items-center gap-1 line-clamp-1"
+						><Building2 class="w-3.5 h-3.5 shrink-0" />{project.developer}</span>
 				{/if}
 			</div>
 		</div>
@@ -106,18 +107,22 @@
 		{#if project.type || project.unitType || (project.bedrooms ?? 0) > 0 || project.deliveryYear}
 			<div class="flex flex-wrap gap-1.5 text-[11px] font-bold text-secondary-600">
 				{#if project.type}
-					<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">{$_(`enums.category.${project.type}`)}</span>
+					<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10"
+						>{$_(`enums.category.${project.type}`)}</span>
 				{/if}
 				{#if project.unitType}
-					<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">{$_(`enums.building_type.${project.unitType}`)}</span>
+					<span class="px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10"
+						>{$_(`enums.building_type.${project.unitType}`)}</span>
 				{/if}
 				{#if (project.bedrooms ?? 0) > 0}
-					<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
+					<span
+						class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
 						<BedDouble class="w-3.5 h-3.5" />{$_('common.bedrooms', { values: { count: project.bedrooms } })}
 					</span>
 				{/if}
 				{#if project.deliveryYear}
-					<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
+					<span
+						class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-100 ring-1 ring-secondary-600/10">
 						<CalendarDays class="w-3.5 h-3.5" />{$_('common.delivery', { values: { year: project.deliveryYear } })}
 					</span>
 				{/if}
@@ -155,7 +160,8 @@
 			<span
 				class="inline-flex items-center gap-1 text-[13px] font-black text-primary
 				group-hover:gap-2.5 transition-all duration-300">
-				{$_('common.view_details')} <ChevronLeft class="w-4 h-4" />
+				{$_('common.view_details')}
+				<ChevronLeft class="w-4 h-4" />
 			</span>
 		</div>
 	</div>

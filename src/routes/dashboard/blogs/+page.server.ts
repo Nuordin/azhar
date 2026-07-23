@@ -144,8 +144,7 @@ export const actions = {
 		if (!excerpt) return fail(422, { message: 'يجب الا يكون حقل المقتطف فارغا' });
 		if (!content) return fail(422, { message: 'يجب الا يكون حقل محتوى المقال فارغا' });
 		if (!category || !BLOG_CATEGORIES.includes(category)) return fail(422, { message: 'يجب اختيار تصنيف صالح للمقال' });
-		if (cover && !cover.type.startsWith('image/'))
-			return fail(422, { message: 'يجب أن تكون صورة الغلاف من نوع صورة' });
+		if (cover && !cover.type.startsWith('image/')) return fail(422, { message: 'يجب أن تكون صورة الغلاف من نوع صورة' });
 
 		try {
 			const [currentBlog] = await db
@@ -272,7 +271,11 @@ export const actions = {
 		}
 
 		try {
-			const [currentBlog] = await db.select({ publishedAt: blogs.publishedAt }).from(blogs).where(eq(blogs.id, id)).limit(1);
+			const [currentBlog] = await db
+				.select({ publishedAt: blogs.publishedAt })
+				.from(blogs)
+				.where(eq(blogs.id, id))
+				.limit(1);
 
 			if (!currentBlog) return fail(404, { message: 'المقال غير موجود' });
 

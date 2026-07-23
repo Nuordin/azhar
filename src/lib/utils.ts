@@ -17,13 +17,15 @@ export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & { ref?:
  * يستخدم لبناء روابط `/{section}/{slug}-{id}` وللتحقق من الرابط القانوني (canonical).
  */
 export function slugify(title: string): string {
-	return title
-		.trim()
-		// eslint-disable-next-line no-control-regex
-		.replace(/[\u0000-\u001f\\/?#%&"'<>]/g, ' ')
-		.replace(/\s+/g, '-')
-		.replace(/-+/g, '-')
-		.replace(/^-|-$/g, '');
+	return (
+		title
+			.trim()
+			// eslint-disable-next-line no-control-regex
+			.replace(/[\u0000-\u001f\\/?#%&"'<>]/g, ' ')
+			.replace(/\s+/g, '-')
+			.replace(/-+/g, '-')
+			.replace(/^-|-$/g, '')
+	);
 }
 
 /**

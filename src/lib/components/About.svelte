@@ -44,7 +44,8 @@
 						class="py-2 px-2 bg-primary flex flex-col items-center justify-center gap-1 rounded-4xl shadow-2xl border border-secondary-700/10 text-secondary-100 overflow-hidden">
 						<Gem class="w-8 h-8 md:w-10 md:h-10 lg:w-16 lg:h-16" strokeWidth={1} />
 						<div class="flex flex-col items-center text-center">
-							<span class="font-black text-base md:text-lg lg:text-2xl leading-tight">{$_('about_us.slogan.title')}</span>
+							<span class="font-black text-base md:text-lg lg:text-2xl leading-tight"
+								>{$_('about_us.slogan.title')}</span>
 							<span class="font-black text-[11px] md:text-xs lg:text-sm leading-snug">
 								{$_('about_us.slogan.description')}
 							</span>

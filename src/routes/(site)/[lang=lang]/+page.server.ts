@@ -1,5 +1,13 @@
 import { db } from '$lib/server/db';
-import { blogs, blogTranslations, media, projects, projectTranslations } from '$lib/server/db/schema';
+import {
+	blogs,
+	blogTranslations,
+	media,
+	projects,
+	projectTranslations,
+	locations,
+	locationTranslations
+} from '$lib/server/db/schema';
 import { and, asc, desc, eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
@@ -9,7 +17,7 @@ const projectCardSelect = {
 	title: projectTranslations.title,
 	description: projectTranslations.description,
 	developer: projectTranslations.developerName,
-	city: projectTranslations.locationName,
+	city: locationTranslations.name,
 	constructionStatus: projects.constructionStatus,
 	completionPercentage: projects.completionPercentage,
 	startingPrice: projects.startingPrice,
@@ -57,6 +65,10 @@ export const load: PageServerLoad = async ({ params }) => {
 			projectTranslations,
 			and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
 		)
+		.leftJoin(
+			locationTranslations,
+			and(eq(projects.locationId, locationTranslations.locationId), eq(locationTranslations.locale, LOCALE))
+		)
 		.leftJoin(media, and(eq(projects.id, media.projectId), eq(media.isMain, true)))
 		.where(and(eq(projects.isPublished, true), eq(projects.isFeatured, true)))
 		.orderBy(asc(projects.featuredOrder), desc(projects.createdAt))
@@ -69,6 +81,10 @@ export const load: PageServerLoad = async ({ params }) => {
 		.innerJoin(
 			projectTranslations,
 			and(eq(projects.id, projectTranslations.projectId), eq(projectTranslations.locale, LOCALE))
+		)
+		.leftJoin(
+			locationTranslations,
+			and(eq(projects.locationId, locationTranslations.locationId), eq(locationTranslations.locale, LOCALE))
 		)
 		.leftJoin(media, and(eq(projects.id, media.projectId), eq(media.isMain, true)))
 		.where(eq(projects.isPublished, true))
@@ -92,11 +108,23 @@ export const load: PageServerLoad = async ({ params }) => {
 		.orderBy(desc(blogs.publishedAt), desc(blogs.createdAt))
 		.limit(3);
 
+	// قائمة المواقع المنشورة لعنصر البحث في الصفحة الرئيسية (القيمة = معرّف الموقع)
+	const searchLocationRows = await db
+		.select({ id: locations.id, name: locationTranslations.name })
+		.from(locations)
+		.innerJoin(
+			locationTranslations,
+			and(eq(locations.id, locationTranslations.locationId), eq(locationTranslations.locale, LOCALE))
+		)
+		.where(eq(locations.isPublished, true))
+		.orderBy(asc(locationTranslations.name));
+
 	const featuredProjects = shape(featuredRows);
 	// إن لم توجد مشاريع مميّزة، اعرض أحدث المشاريع بدل ترك القسم فارغاً
 	return {
 		featuredProjects: featuredProjects.length > 0 ? featuredProjects : shape(latestRows),
 		latestProjects: shape(latestRows),
-		blogs: latestBlogs
+		blogs: latestBlogs,
+		searchLocations: searchLocationRows
 	};
 };

@@ -56,10 +56,7 @@
 {#snippet select(name: string, options: { value: string; label: string }[])}
 	<div class="flex justify-start items-start">
 		<!-- <label for="price" class="px-4 leading-5">{label}</label> -->
-		<select
-			{name}
-			id={name}
-			class="w-full py-3 bg-secondary-100 border-gray-600/20 shadow rounded-2xl">
+		<select {name} id={name} class="w-full py-3 bg-secondary-100 border-gray-600/20 shadow rounded-2xl">
 			<option value="">{options[0].label}</option>
 			{#each options as option, idx (idx)}
 				<option value={option.value}>{option.label}</option>

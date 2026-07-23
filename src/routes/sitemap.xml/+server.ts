@@ -1,12 +1,5 @@
 import { db } from '$lib/server/db';
-import {
-	blogs,
-	blogTranslations,
-	projects,
-	projectTranslations,
-	units,
-	unitTranslations
-} from '$lib/server/db/schema';
+import { blogs, blogTranslations, projects, projectTranslations, units, unitTranslations } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { slugify } from '$lib/utils';
 import { DEFAULT_LOCALE, localizedPath, sectionListPath, localeHome, type Section } from '$lib/i18n/config';
@@ -134,4 +127,4 @@ export const GET: RequestHandler = async ({ url }) => {
 			'Cache-Control': 'max-age=0, s-maxage=3600'
 		}
 	});
-}
+};

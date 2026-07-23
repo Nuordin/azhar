@@ -26,6 +26,7 @@
 
 	const unit = $derived(data.unit);
 	const t = $derived(data.translation);
+	const locationName = $derived(data.locationName);
 
 	type Amenity = { title: string; icon: string };
 	type Detail = { title: string; description: string };
@@ -36,7 +37,7 @@
 	// بيانات محركات البحث
 	const lang = $derived(page.params.lang ?? DEFAULT_LOCALE);
 	const seoTitle = $derived(
-		t?.title ? `${t.title} — ${t.locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME
+		t?.title ? `${t.title} — ${locationName ?? ''}`.trim().replace(/—$/, '').trim() : SITE_NAME
 	);
 	const seoDescription = $derived(t?.description ? truncateForMeta(t.description) : DEFAULT_DESCRIPTION);
 	const canonical = $derived(
@@ -231,9 +232,9 @@
 				<Bath size={16} />{$_('common.bathrooms', { values: { count: unit.bathrooms } })}
 			</span>
 		{/if}
-		{#if t?.locationName}
+		{#if locationName}
 			<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary-100">
-				<MapPin size={16} />{t.locationName}
+				<MapPin size={16} />{locationName}
 			</span>
 		{/if}
 	</div>
